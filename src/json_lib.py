@@ -20,4 +20,4 @@ class JSON:
         with open(file, "r") as json_file:
             contents = json_file.read()
             data = json.loads(contents)
-            return data, contents
+            return data

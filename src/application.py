@@ -3,6 +3,8 @@ from PyQt5.QtWidgets import QApplication, QWidget
 from PyQt5.QtCore import Qt, QEvent
 from json_lib import JSON
 
+PREFERENCES_FILE = "user_preferences.json"
+
 def compare_dict_keys(dict_a, dict_b, yielder = None):
     """
     Compares the keys of two dictionaries, checking if they both have the same keys.
@@ -43,10 +45,7 @@ class EditorApplication(QWidget, JSON):
 
         self.setWindowTitle("PyQt Editor")
         self.init_ui()
-        self.load_json_preferences("user_preferences.json")
-
-        self.user_preferences_template["X"] = self.size_x
-        self.user_preferences_template["Y"] = self.size_y
+        self.load_json_preferences(PREFERENCES_FILE)
 
         self.show()
         sys.exit(app.exec_())
@@ -59,8 +58,8 @@ class EditorApplication(QWidget, JSON):
         self.size_y = (self.screen_size.height()/4)*3
 
         self.setGeometry(
-            int(self.position_x),
-            int(self.position_y),
+            0,
+            0,
             int(self.size_x),
             int(self.size_y)
         )
@@ -71,16 +70,24 @@ class EditorApplication(QWidget, JSON):
         """
         if event.type() == QEvent.WindowStateChange:
             if self.windowState() & Qt.WindowMaximized:
-                existing_data, _ = self.get_json("user_preferences.json")
+                existing_data = self.get_json(PREFERENCES_FILE)
                 existing_data["maximized"] = True
-                self.write_json("user_preferences.json", existing_data)
+                self.write_json(PREFERENCES_FILE, existing_data)
             else:
-                existing_data, _ = self.get_json("user_preferences.json")
+                existing_data = self.get_json(PREFERENCES_FILE)
                 existing_data["maximized"] = False
-                self.write_json("user_preferences.json", existing_data)
+                self.write_json(PREFERENCES_FILE, existing_data)
 
-    position_x = 0
-    position_y = 0
+    def moveEvent(self, event):
+        """
+        Handles event queue
+        """
+        if event.type() == QEvent.Move:
+            data = self.get_json(PREFERENCES_FILE)
+            pos = event.pos()
+            data["WindowPosition"]["X"] = pos.x()
+            data["WindowPosition"]["Y"] = pos.y()
+            self.write_json(PREFERENCES_FILE, data)
 
     def load_json_preferences(self, file):
         """
@@ -88,7 +95,7 @@ class EditorApplication(QWidget, JSON):
         If json data does not exist, it is created.
         """
 
-        data, _ = self.get_json(file)
+        data = self.get_json(file)
         if (not data.get("JSONLoaded", False)) or (not compare_dict_keys(self.user_preferences_template, data)):
             def update(key, value, addition):
                 """
@@ -105,16 +112,27 @@ class EditorApplication(QWidget, JSON):
             compare_dict_keys(self.user_preferences_template, data.copy(), update)
             data = self.write_json(file, data)
 
+        lock = False
         if data.get("maximized"):
             self.showMaximized()
+            lock = True
 
         if data.get("fullscreen"):
             self.showFullScreen()
+            lock = True
+
+        if lock is False:
+            self.move(data["WindowPosition"]["X"], data["WindowPosition"]["Y"])
 
     user_preferences_template = {
         "JSONLoaded": True,
         "maximized": False,
         "fullscreen": False,
+
+        "WindowPosition": {
+            "X": 0,
+            "Y": 0
+        }
     }
 
 if __name__ == "__main__":
