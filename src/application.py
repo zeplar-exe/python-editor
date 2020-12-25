@@ -110,6 +110,9 @@ class EditorApplication(QWidget):
                 """
                 Updates JSON data based on 'value'
                 """
+                if data.get("JSONLoaded", False):
+                    value = data.get(key, value)
+
                 if addition is True:
                     data.update({key: value})
                 else:
@@ -118,7 +121,6 @@ class EditorApplication(QWidget):
             compare_dict_keys(self.user_preferences_template, data.copy(), update)
 
             self.write_json(file, data)
-            return
 
         if data.get("maximized"):
             self.showMaximized()
