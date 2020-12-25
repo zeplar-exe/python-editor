@@ -1,7 +1,7 @@
 import sys
-import json
 from PyQt5.QtWidgets import QApplication, QWidget
 from PyQt5.QtCore import Qt, QEvent
+from json_lib import JSON
 
 def compare_dict_keys(dict_a, dict_b, yielder = None):
     """
@@ -23,7 +23,7 @@ def compare_dict_keys(dict_a, dict_b, yielder = None):
 
     return True
 
-class EditorApplication(QWidget):
+class EditorApplication(QWidget, JSON):
     """
     Main class for pyqt application
     """
@@ -81,24 +81,6 @@ class EditorApplication(QWidget):
 
     position_x = 0
     position_y = 0
-
-    def get_json(self, file):
-        """
-        Returns json data
-        """
-
-        with open(file, "r") as json_file:
-            contents = json_file.read()
-            data = json.loads(contents)
-            return data, contents
-
-    def write_json(self, file, data):
-        """
-        Writes 'data' to the given json 'file'
-        """
-        with open(file, "w") as json_file:
-            json.dump(data, json_file)
-            return data
 
     def load_json_preferences(self, file):
         """
