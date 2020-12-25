@@ -34,6 +34,7 @@ class EditorApplication(QWidget):
         app = QApplication(sys.argv)
         super().__init__()
 
+        self.setMinimumSize(300, 225)
         self.size_x = 0
         self.size_y = 0
 
@@ -97,6 +98,7 @@ class EditorApplication(QWidget):
         """
         with open(file, "w") as json_file:
             json.dump(data, json_file)
+            return data
 
     def load_json_preferences(self, file):
         """
@@ -119,8 +121,7 @@ class EditorApplication(QWidget):
                     data.pop(key)
 
             compare_dict_keys(self.user_preferences_template, data.copy(), update)
-
-            self.write_json(file, data)
+            data = self.write_json(file, data)
 
         if data.get("maximized"):
             self.showMaximized()
@@ -132,11 +133,6 @@ class EditorApplication(QWidget):
         "JSONLoaded": True,
         "maximized": False,
         "fullscreen": False,
-
-        "WindowSize": {
-            "X": 0,
-            "Y": 0
-        }
     }
 
 if __name__ == "__main__":
