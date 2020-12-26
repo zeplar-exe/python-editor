@@ -1,4 +1,4 @@
-import sys
+import sys, os
 from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QMenuBar
 from PyQt5.QtCore import Qt, QEvent
 from json_lib import JSON
@@ -6,6 +6,7 @@ from preferences_window import PreferencesApplication as pref_app
 #import graphics as gp
 
 PREFERENCES_FILE = "user_preferences.json"
+TMP_NAME = os.path.join("C:\\tmp", "PE_TMP_FILE")
 
 def compare_dict_keys(dict_a, dict_b, yielder = None):
     """
@@ -48,8 +49,18 @@ class EditorApplication(QWidget, JSON):
         self.load_json_preferences(PREFERENCES_FILE)
         self.init_ui()
         self.init_menubar()
+        self.init_project()
 
         self.pref_dialog = pref_app(self)
+
+    def init_project(self):
+        """
+        Creates base project file for temporary use
+        """
+        if os.path.isdir(TMP_NAME):
+            os.removedirs(TMP_NAME)
+        
+        os.mkdir(TMP_NAME)
 
     def init_ui(self):
         """
@@ -113,7 +124,7 @@ class EditorApplication(QWidget, JSON):
 
     def moveEvent(self, event):
         """
-        Handles event queue
+        Handles move event queue
         """
         if event.type() == QEvent.Move:
             data = self.get_json(PREFERENCES_FILE)
@@ -121,6 +132,15 @@ class EditorApplication(QWidget, JSON):
             data["WindowPosition"]["X"] = pos.x()
             data["WindowPosition"]["Y"] = pos.y()
             self.write_json(PREFERENCES_FILE, data)
+
+    def closeEvent(self, event):
+        """
+        Handles close events
+        """
+        if os.path.isdir(TMP_NAME):
+            os.removedirs(TMP_NAME)
+        
+
 
     def load_json_preferences(self, file):
         """
