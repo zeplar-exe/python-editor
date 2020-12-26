@@ -1,4 +1,5 @@
-import sys, os
+import sys
+import os
 from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QMenuBar
 from PyQt5.QtCore import Qt, QEvent
 from json_lib import JSON
@@ -80,7 +81,7 @@ class EditorApplication(QWidget, JSON):
         """
         Initiates window UI specifics
         """
-        self.setWindowTitle("editor.py") 
+        self.setWindowTitle("editor.py")
         self.size_x = (self.screen_size.width()/5)*4
         self.size_y = (self.screen_size.height()/4)*3
 
