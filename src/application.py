@@ -8,6 +8,18 @@ from preferences_window import PreferencesApplication as pref_app
 PREFERENCES_FILE = "user_preferences.json"
 TMP_NAME = os.path.join("C:\\tmp", "PE_TMP_FILE")
 
+def remove_directory(dir_):
+    """
+    Recursively removes a directory and files//directories inside of it
+    """
+    for file in os.listdir(dir_):
+        full_name = os.path.join(dir_, file)
+        if os.path.isdir(full_name):
+            remove_directory(full_name)
+            os.removedirs(full_name)
+        else:
+            os.remove(full_name)
+
 def compare_dict_keys(dict_a, dict_b, yielder = None):
     """
     Compares the keys of two dictionaries, checking if they both have the same keys.
@@ -58,15 +70,17 @@ class EditorApplication(QWidget, JSON):
         Creates base project file for temporary use
         """
         if os.path.isdir(TMP_NAME):
-            os.removedirs(TMP_NAME)
-        
+            remove_directory(TMP_NAME)
+
         os.mkdir(TMP_NAME)
+        os.mkdir(os.path.join(TMP_NAME, "clips"))
+        os.mkdir(os.path.join(TMP_NAME, "images"))
 
     def init_ui(self):
         """
         Initiates window UI specifics
         """
-        self.setWindowTitle("editor.py")
+        self.setWindowTitle("editor.py") 
         self.size_x = (self.screen_size.width()/5)*4
         self.size_y = (self.screen_size.height()/4)*3
 
@@ -133,14 +147,12 @@ class EditorApplication(QWidget, JSON):
             data["WindowPosition"]["Y"] = pos.y()
             self.write_json(PREFERENCES_FILE, data)
 
-    def closeEvent(self, event):
+    def closeEvent(self, _):
         """
         Handles close events
         """
         if os.path.isdir(TMP_NAME):
-            os.removedirs(TMP_NAME)
-        
-
+            remove_directory(TMP_NAME)
 
     def load_json_preferences(self, file):
         """
