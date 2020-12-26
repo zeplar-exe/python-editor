@@ -1,4 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QGridLayout, QVBoxLayout, QCheckBox, QPushButton, QDialog
+from PyQt5.QtWidgets import QWidget, QGridLayout, QCheckBox, QPushButton, QMessageBox
 from PyQt5.QtCore import Qt
 from json_lib import JSON
 #import graphics as gp
@@ -26,6 +26,8 @@ class PreferencesApplication(QWidget, JSON):
         Initiates window UI specifics
         """
         grid = QGridLayout()
+        grid.setAlignment(Qt.AlignLeft)
+        grid.setSpacing(2)
         self.setLayout(grid)
 
         self.setWindowTitle("Preferences")
@@ -41,39 +43,39 @@ class PreferencesApplication(QWidget, JSON):
 
         pref_data = self.get_json(PREFERENCES_FILE)
 
-        textbox = QCheckBox("Open editor in fullscreen mode")
+        textbox_f = QCheckBox("Open editor in fullscreen mode")
         if pref_data.get("fullscreen") is True:
-            textbox.setChecked(True)
-        grid.addWidget(textbox)
+            textbox_f.setChecked(True)
+
+        textbox_w = QCheckBox("Warn when exiting without saving")
+        if pref_data.get("warn_non_save") is True:
+            textbox_w.setChecked(True)
+
+        grid.addWidget(textbox_f, 0, 0)
+        grid.addWidget(textbox_w, 0, 0)
 
         close_button = QPushButton("Exit without Saving")
         grid.addWidget(close_button)
         def close_():
-            dialog = QDialog()
-            layout = QVBoxLayout()
-            dialog.setLayout(layout)
-            dialog.resize(125, 75)
-            dialog.setMaximumSize(125, 75)
-            dialog.setMinimumSize(125, 75)
+            if textbox_w.isChecked():
+                dialog = QMessageBox()
+                dialog.setIcon(QMessageBox.Question)
+                dialog.setText("Preferences may have been modified")
+                dialog.setInformativeText("Are you sure that you would like to exit without saving?")
+                dialog.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+                dialog.resize(125, 75)
+                dialog.setMaximumSize(125, 75)
+                dialog.setMinimumSize(125, 75)
 
-            dialog.setWindowTitle("Are you sure?")
-            conf = QPushButton("Confirm", dialog)
-            layout.addWidget(conf, alignment=Qt.AlignLeft | Qt.AlignBottom)
-            ret = QPushButton("Take me back", dialog)
-            layout.addWidget(ret, alignment=Qt.AlignRight | Qt.AlignBottom)
+                ret = dialog.exec_()
 
-            def accept_():
+                if ret == QMessageBox.Ok:
+                    dialog.accept()
+                    self.close()
+                elif ret == QMessageBox.Cancel:
+                    dialog.reject()
+            else:
                 self.close()
-                dialog.accept()
-
-            def cancel_():
-                dialog.reject()
-
-            conf.clicked.connect(accept_)
-            ret.clicked.connect(cancel_)
-
-            dialog.exec_()
-
         close_button.clicked.connect(close_)
 
         close_save_button = QPushButton("Save and Exit")
@@ -81,7 +83,7 @@ class PreferencesApplication(QWidget, JSON):
         def save_close():
             close_save_button.setCheckable(False)
 
-            data = {"fullscreen": textbox.isChecked()}
+            data = {"fullscreen": textbox_f.isChecked(), "warn_non_save": textbox_w.isChecked()}
             new = self.get_json(PREFERENCES_FILE)
             for key in data:
                 new[key] = data[key]
@@ -90,5 +92,4 @@ class PreferencesApplication(QWidget, JSON):
             main.load_json_preferences(PREFERENCES_FILE)
 
             self.close()
-
         close_save_button.clicked.connect(save_close)

@@ -1,17 +1,19 @@
 import sys
 import os
-from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QMenuBar
+from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QMenuBar, QFileDialog
 from PyQt5.QtCore import Qt, QEvent
 from json_lib import JSON
 from preferences_window import PreferencesApplication as pref_app
-#import graphics as gp
 
 PREFERENCES_FILE = "user_preferences.json"
-TMP_NAME = os.path.join("C:\\tmp", "PE_TMP_FILE")
+PROJECT_DIRECTORY = os.path.join("C:\\tmp", "PE_TMP_FILE")
+REQUIRED_PROJECT_FILES = [
+    
+]
 
 def remove_directory(dir_):
     """
-    Recursively removes a directory and files//directories inside of it
+    Recursively removes a directory and files/directories inside of it
     """
     for file in os.listdir(dir_):
         full_name = os.path.join(dir_, file)
@@ -70,12 +72,12 @@ class EditorApplication(QWidget, JSON):
         """
         Creates base project file for temporary use
         """
-        if os.path.isdir(TMP_NAME):
-            remove_directory(TMP_NAME)
+        if os.path.isdir(PROJECT_DIRECTORY):
+            remove_directory(PROJECT_DIRECTORY)
 
-        os.mkdir(TMP_NAME)
-        os.mkdir(os.path.join(TMP_NAME, "clips"))
-        os.mkdir(os.path.join(TMP_NAME, "images"))
+        os.mkdir(PROJECT_DIRECTORY)
+        os.mkdir(os.path.join(PROJECT_DIRECTORY, "clips"))
+        os.mkdir(os.path.join(PROJECT_DIRECTORY, "images"))
 
     def init_ui(self):
         """
@@ -105,7 +107,16 @@ class EditorApplication(QWidget, JSON):
 
         action_file = menu_bar.addMenu("File")
         action_file.addAction("New")
-        action_file.addAction("Open")
+        #def open_file():
+            #dialog = QFileDialog()
+            #dialog.setFileMode(QFileDialog.DirectoryOnly)
+
+            #if dialog.exec_():
+                #files = QStringList()
+
+                #for file in os.listdir(files[0]):
+                    #with open(file, "r") as data:  
+        #action_file.addAction("Open").triggered.connect(open_file)
         action_file.addAction("Save")
         action_file.addSeparator()
         action_file.addAction("Quit").triggered.connect(self.close)
@@ -152,8 +163,8 @@ class EditorApplication(QWidget, JSON):
         """
         Handles close events
         """
-        if os.path.isdir(TMP_NAME):
-            remove_directory(TMP_NAME)
+        if os.path.isdir(PROJECT_DIRECTORY):
+            remove_directory(PROJECT_DIRECTORY)
 
     def load_json_preferences(self, file):
         """
@@ -191,6 +202,7 @@ class EditorApplication(QWidget, JSON):
         "JSONLoaded": True,
         "maximized": False,
         "fullscreen": False,
+        "warn_non_save": True,
 
         "WindowPosition": {
             "X": 0,
