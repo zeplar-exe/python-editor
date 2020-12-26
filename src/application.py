@@ -3,7 +3,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QMenuBar
 from PyQt5.QtCore import Qt, QEvent
 from json_lib import JSON
 from preferences_window import PreferencesApplication as pref_app
-import graphics as gp
+#import graphics as gp
 
 PREFERENCES_FILE = "user_preferences.json"
 
@@ -82,19 +82,12 @@ class EditorApplication(QWidget, JSON):
         action_file.addAction("Open")
         action_file.addAction("Save")
         action_file.addSeparator()
-
-        def quit_():
-            """
-            Closes window
-            """
-            self.close()
-        action_file.addAction("Quit").triggered.connect(quit_)
+        action_file.addAction("Quit").triggered.connect(self.close)
 
         action_file = menu_bar.addMenu("Edit")
         action_file.addAction("Undo")
         action_file.addAction("Redo")
         action_file.addSeparator()
-
         def preferences_():
             """
             Instiantates preferences window
@@ -152,11 +145,14 @@ class EditorApplication(QWidget, JSON):
             compare_dict_keys(self.user_preferences_template, data.copy(), update)
             data = self.write_json(file, data)
 
-        if data.get("maximized"):
+        if data.get("maximized") is True:
             self.showMaximized()
 
-        if data.get("fullscreen"):
+        if data.get("fullscreen") is True:
             self.showFullScreen()
+        elif self.isFullScreen():
+            self.showNormal()
+            self.resize(int(self.size_x), int(self.size_y))
 
     user_preferences_template = {
         "JSONLoaded": True,
@@ -167,7 +163,7 @@ class EditorApplication(QWidget, JSON):
             "X": 0,
             "Y": 0
         }
-    } 
+    }
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
