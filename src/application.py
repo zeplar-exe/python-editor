@@ -1,14 +1,11 @@
 import sys
 import os
+from shutil import copyfile
+from pathlib import Path
 from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QMenuBar, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QEvent
 from json_lib import JSON
 from preferences_window import PreferencesApplication as pref_app
-
-project_directory = os.path.join("C:\\tmp", "PE_TMP_FILE")
-
-def set_directory(name):
-    project_directory = os.path.join("C:\\tmp", name)
 
 PREFERENCES_FILE = "user_preferences.json"
 REQUIRED_PROJECT_FILES = {
@@ -64,6 +61,7 @@ class EditorApplication(QWidget, JSON):
         super().__init__()
 
         self.setMinimumSize(300, 225)
+        self.project_directory = None
         self.size_x = 0
         self.size_y = 0
 
@@ -73,20 +71,23 @@ class EditorApplication(QWidget, JSON):
         self.load_json_preferences(PREFERENCES_FILE)
         self.init_ui()
         self.init_menubar()
-        self.init_tmp()
+        self.init_project()
 
         self.pref_dialog = pref_app(self)
 
-    def init_tmp(self):
+    def init_project(self):
         """
         Creates base project file for temporary use
         """
-        if os.path.isdir(project_directory):
-            remove_directory(project_directory)
+        if self.project_directory is None:
+            self.project_directory = os.path.join("C:\\tmp", "PE_TMP_FOLDER")
 
-        os.mkdir(project_directory)
-        os.mkdir(os.path.join(project_directory, "clips"))
-        os.mkdir(os.path.join(project_directory, "images"))
+        if os.path.isdir(self.project_directory):
+            remove_directory(self.project_directory)
+
+        os.mkdir(self.project_directory)
+        os.mkdir(os.path.join(self.project_directory, "clips"))
+        os.mkdir(os.path.join(self.project_directory, "images"))
 
     def init_ui(self):
         """
@@ -116,9 +117,9 @@ class EditorApplication(QWidget, JSON):
 
         action_file = menu_bar.addMenu("File")
 
-        def create_file():
-            self.init_tmp()
-        action_file.addAction("New").triggered.connect(create_file)
+        def new_file():
+            self.init_project()
+        action_file.addAction("New").triggered.connect(new_file)
 
         def open_file():
             dialog = QFileDialog()
@@ -154,12 +155,14 @@ class EditorApplication(QWidget, JSON):
                     fail_dialog(dialog, missing)
                     return
                 else:
-                    set_directory(dir_)
+                    remove_directory(self.project_directory)
+                    self.project_directory = dir_
+                    self.init_project()
         action_file.addAction("Open").triggered.connect(open_file)
 
         def save_file():
-            dialog = QMessageBox
-            dialog.setAcceptMode(QFileDialog.AcceptSave)
+            dialog = QFileDialog()
+            dialog.setAcceptMode(QFileDialog.AcceptOpen)
             dialog.setFileMode(QFileDialog.DirectoryOnly)
 
             def fail_dialog(reject):
@@ -167,7 +170,7 @@ class EditorApplication(QWidget, JSON):
                 Dialog to display when an invalid directory is chosen
                 """
                 fail = QMessageBox()
-                fail.setText("File to open should be an empty directory")
+                fail.setText("Directory should be empty")
                 fail.setInformativeText("Please choose a different directory.")
                 fail.setIcon(QMessageBox.Information)
                 fail.setStandardButtons(QMessageBox.Ok)
@@ -176,10 +179,13 @@ class EditorApplication(QWidget, JSON):
                 open_file()
 
             if dialog.exec_():
-                dir_ = dialog.selectedFiles()[1]
+                dir_ = dialog.selectedFiles()[0]
 
                 if len(os.listdir(dir_)) == 0:
-                    WIP = "W.I.P"
+                    original = self.project_directory
+                    copyfile(self.project_directory, dir_)
+                    self.project_directory = dir_
+                    remove_directory(original)
                 else:
                     fail_dialog(dialog)
         action_file.addAction("Save").triggered.connect(save_file)
@@ -228,8 +234,12 @@ class EditorApplication(QWidget, JSON):
         """
         Handles close events
         """
-        if os.path.isdir(project_directory):
-            remove_directory(project_directory)
+        if os.path.isdir(self.project_directory):
+            child = Path(self.project_directory)
+            test_root = Path("C:\\tmp")
+
+            if test_root in child.parents:
+                remove_directory(self.project_directory)
 
     def load_json_preferences(self, file):
         """
