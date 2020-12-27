@@ -1,15 +1,24 @@
 import sys
 import os
-from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QMenuBar, QFileDialog
+from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QMenuBar, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QEvent
 from json_lib import JSON
 from preferences_window import PreferencesApplication as pref_app
 
+project_directory = os.path.join("C:\\tmp", "PE_TMP_FILE")
+
+def set_directory(name):
+    project_directory = os.path.join("C:\\tmp", name)
+
 PREFERENCES_FILE = "user_preferences.json"
-PROJECT_DIRECTORY = os.path.join("C:\\tmp", "PE_TMP_FILE")
-REQUIRED_PROJECT_FILES = [
-    
-]
+REQUIRED_PROJECT_FILES = {
+    "directory": [
+        "clips",
+        "images"
+    ],
+
+    "file": [],
+}
 
 def remove_directory(dir_):
     """
@@ -64,20 +73,20 @@ class EditorApplication(QWidget, JSON):
         self.load_json_preferences(PREFERENCES_FILE)
         self.init_ui()
         self.init_menubar()
-        self.init_project()
+        self.init_tmp()
 
         self.pref_dialog = pref_app(self)
 
-    def init_project(self):
+    def init_tmp(self):
         """
         Creates base project file for temporary use
         """
-        if os.path.isdir(PROJECT_DIRECTORY):
-            remove_directory(PROJECT_DIRECTORY)
+        if os.path.isdir(project_directory):
+            remove_directory(project_directory)
 
-        os.mkdir(PROJECT_DIRECTORY)
-        os.mkdir(os.path.join(PROJECT_DIRECTORY, "clips"))
-        os.mkdir(os.path.join(PROJECT_DIRECTORY, "images"))
+        os.mkdir(project_directory)
+        os.mkdir(os.path.join(project_directory, "clips"))
+        os.mkdir(os.path.join(project_directory, "images"))
 
     def init_ui(self):
         """
@@ -106,18 +115,74 @@ class EditorApplication(QWidget, JSON):
         layout.addWidget(menu_bar, 0, 0)
 
         action_file = menu_bar.addMenu("File")
-        action_file.addAction("New")
-        #def open_file():
-            #dialog = QFileDialog()
-            #dialog.setFileMode(QFileDialog.DirectoryOnly)
 
-            #if dialog.exec_():
-                #files = QStringList()
+        def create_file():
+            self.init_tmp()
+        action_file.addAction("New").triggered.connect(create_file)
 
-                #for file in os.listdir(files[0]):
-                    #with open(file, "r") as data:  
-        #action_file.addAction("Open").triggered.connect(open_file)
-        action_file.addAction("Save")
+        def open_file():
+            dialog = QFileDialog()
+            dialog.setAcceptMode(QFileDialog.AcceptOpen)
+            dialog.setFileMode(QFileDialog.DirectoryOnly)
+
+            def fail_dialog(reject, missing):
+                """
+                Dialog to display when an invalid directory is chosen
+                """
+                fail = QMessageBox()
+                fail.setText("File to open should be a valid project directory.")
+                fail.setInformativeText("Missing {0}".format(", ".join(missing)))
+                fail.setIcon(QMessageBox.Information)
+                fail.setStandardButtons(QMessageBox.Ok)
+                fail.exec_()
+                reject.reject()
+                open_file()
+
+            if dialog.exec_():
+                dir_ = dialog.selectedFiles()[0]
+                missing = []
+
+                for req_d in REQUIRED_PROJECT_FILES["directory"]:
+                    if not os.path.isdir(os.path.join(dir_, req_d)):
+                        missing.append(req_d)
+
+                for req_f in REQUIRED_PROJECT_FILES["file"]:
+                    if not os.path.isfile(os.path.join(dir_, req_f)):
+                        missing.append(req_f)
+
+                if missing:
+                    fail_dialog(dialog, missing)
+                    return
+                else:
+                    set_directory(dir_)
+        action_file.addAction("Open").triggered.connect(open_file)
+
+        def save_file():
+            dialog = QMessageBox
+            dialog.setAcceptMode(QFileDialog.AcceptSave)
+            dialog.setFileMode(QFileDialog.DirectoryOnly)
+
+            def fail_dialog(reject):
+                """
+                Dialog to display when an invalid directory is chosen
+                """
+                fail = QMessageBox()
+                fail.setText("File to open should be an empty directory")
+                fail.setInformativeText("Please choose a different directory.")
+                fail.setIcon(QMessageBox.Information)
+                fail.setStandardButtons(QMessageBox.Ok)
+                fail.exec_()
+                reject.reject()
+                open_file()
+
+            if dialog.exec_():
+                dir_ = dialog.selectedFiles()[1]
+
+                if len(os.listdir(dir_)) == 0:
+                    WIP = "W.I.P"
+                else:
+                    fail_dialog(dialog)
+        action_file.addAction("Save").triggered.connect(save_file)
         action_file.addSeparator()
         action_file.addAction("Quit").triggered.connect(self.close)
 
@@ -163,8 +228,8 @@ class EditorApplication(QWidget, JSON):
         """
         Handles close events
         """
-        if os.path.isdir(PROJECT_DIRECTORY):
-            remove_directory(PROJECT_DIRECTORY)
+        if os.path.isdir(project_directory):
+            remove_directory(project_directory)
 
     def load_json_preferences(self, file):
         """
