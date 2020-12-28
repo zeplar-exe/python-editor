@@ -1,53 +1,23 @@
 import sys
 import os
-from shutil import copyfile
 from pathlib import Path
 from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QMenuBar, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QEvent
+from project import Project
 from json_lib import JSON
+from exlib import remove_directory, compare_dict_keys
 from preferences_window import PreferencesApplication as pref_app
 
+CURRENT_DIRECTORY = Path(__file__).parent.absolute()
 PREFERENCES_FILE = "user_preferences.json"
 REQUIRED_PROJECT_FILES = {
-    "directory": [
-        "clips",
-        "images"
+    "directory": [],
+
+    "file": [
+        "clips.json",
+        "images.json"
     ],
-
-    "file": [],
 }
-
-def remove_directory(dir_):
-    """
-    Recursively removes a directory and files/directories inside of it
-    """
-    for file in os.listdir(dir_):
-        full_name = os.path.join(dir_, file)
-        if os.path.isdir(full_name):
-            remove_directory(full_name)
-            os.removedirs(full_name)
-        else:
-            os.remove(full_name)
-
-def compare_dict_keys(dict_a, dict_b, yielder = None):
-    """
-    Compares the keys of two dictionaries, checking if they both have the same keys.
-    """
-    for key in dict_a:
-        if dict_b.get(key) is None:
-            if (yielder is not None) and callable(yielder):
-                yielder(key, dict_a[key], True)
-            else:
-                return False
-
-    for key in dict_b:
-        if dict_a.get(key) is None:
-            if (yielder is not None) and callable(yielder):
-                yielder(key, dict_a.get(key, None), False)
-            else:
-                return False
-
-    return True
 
 class EditorApplication(QWidget, JSON):
     """
@@ -55,13 +25,10 @@ class EditorApplication(QWidget, JSON):
     """
 
     def __init__(self):
-        """
-        Class Initiator
-        """
         super().__init__()
 
         self.setMinimumSize(300, 225)
-        self.project_directory = None
+        self.current_project = None
         self.size_x = 0
         self.size_y = 0
 
@@ -79,15 +46,13 @@ class EditorApplication(QWidget, JSON):
         """
         Creates base project file for temporary use
         """
-        if self.project_directory is None:
-            self.project_directory = os.path.join("C:\\tmp", "PE_TMP_FOLDER")
+        json_data = self.get_json(PREFERENCES_FILE)["last_session_directory"]
 
-        if os.path.isdir(self.project_directory):
-            remove_directory(self.project_directory)
-
-        os.mkdir(self.project_directory)
-        os.mkdir(os.path.join(self.project_directory, "clips"))
-        os.mkdir(os.path.join(self.project_directory, "images"))
+        if os.path.isdir(json_data):
+            Project(json_data, CURRENT_DIRECTORY, True)
+            return
+        else:
+            Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY)
 
     def init_ui(self):
         """
@@ -118,7 +83,7 @@ class EditorApplication(QWidget, JSON):
         action_file = menu_bar.addMenu("File")
 
         def new_file():
-            self.init_project()
+            Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY)
         action_file.addAction("New").triggered.connect(new_file)
 
         def open_file():
@@ -155,9 +120,7 @@ class EditorApplication(QWidget, JSON):
                     fail_dialog(dialog, missing)
                     return
                 else:
-                    remove_directory(self.project_directory)
-                    self.project_directory = dir_
-                    self.init_project()
+                    Project(dir_, CURRENT_DIRECTORY, True)
         action_file.addAction("Open").triggered.connect(open_file)
 
         def save_file():
@@ -182,13 +145,11 @@ class EditorApplication(QWidget, JSON):
                 dir_ = dialog.selectedFiles()[0]
 
                 if len(os.listdir(dir_)) == 0:
-                    original = self.project_directory
-                    copyfile(self.project_directory, dir_)
-                    self.project_directory = dir_
-                    remove_directory(original)
+                    self.current_project.save()
                 else:
                     fail_dialog(dialog)
         action_file.addAction("Save").triggered.connect(save_file)
+        action_file.addAction("Save As")
         action_file.addSeparator()
         action_file.addAction("Quit").triggered.connect(self.close)
 
@@ -236,10 +197,14 @@ class EditorApplication(QWidget, JSON):
         """
         if os.path.isdir(self.project_directory):
             child = Path(self.project_directory)
-            test_root = Path("C:\\tmp")
+            test_root = Path(Path(__file__).parent.absolute())
 
             if test_root in child.parents:
                 remove_directory(self.project_directory)
+
+            json_data = self.get_json(PREFERENCES_FILE)
+            json_data["last_session_directory"] = self.current_project.get_directory()
+            self.write_json(PREFERENCES_FILE, json_data)
 
     def load_json_preferences(self, file):
         """
@@ -278,6 +243,7 @@ class EditorApplication(QWidget, JSON):
         "maximized": False,
         "fullscreen": False,
         "warn_non_save": True,
+        "last_session_directory": None,
 
         "WindowPosition": {
             "X": 0,
