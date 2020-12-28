@@ -10,7 +10,8 @@ class Project(JSON):
 
     def __init__(self, directory, app_directory, opening = None):
         self.current_directory = app_directory
-        self.__project_directory = directory
+        self.project_directory = directory
+        self.saved = False
         self.project_data = {
             "clips": [],
             "images": []
@@ -19,49 +20,61 @@ class Project(JSON):
         if opening is None:
             os.mkdir(directory)
             open(os.path.join(directory, "clips.json"), "x").close()
+            open(os.path.join(directory, "images.json"), "x").close()
 
-        with open(os.path.join(directory, "clips.json")) as f_data:
+        self.clips = os.path.join(directory, "clips.json")
+        with open(self.clips) as f_data:
             self.project_data["clips"] = f_data
 
-        with open(os.path.join(directory, "images.json")) as f_data:
+        self.images = open(os.path.join(directory, "images.json"))
+        with open(self.images) as f_data:
             self.project_data["images"] = f_data
 
-        os.mkdir(os.path.join(self.__project_directory, "clips"))
-        os.mkdir(os.path.join(self.__project_directory, "images"))
+        os.mkdir(os.path.join(self.project_directory, "clips"))
+        os.mkdir(os.path.join(self.project_directory, "images"))
 
     def save(self):
         """
         Handles save command
         """
-        if Path(self.__project_directory).parent == self.current_directory:
-            remove_directory(self.__project_directory)
+        if Path(self.project_directory).parent == self.current_directory:
+            remove_directory(self.project_directory)
+            self.save_as()
         else:
-            pass
+            self.write_json(self.clips, self.project_data["clips"])
+            self.write_json(self.images, self.project_data["images"])
 
-    def save_as(self, directory):
+    def save_as(self, directory = ""):
         """
         Handles save as command
         """
-        if Path(self.__project_directory).parent == self.current_directory:
-            remove_directory(self.__project_directory)
+        if not directory:
+            pass
+
+        if Path(self.project_directory).parent == self.current_directory:
+            remove_directory(self.project_directory)
         else:
             pass
 
-    def remove(self):
+    def release(self):
         """
         Removes project directory
         """
-        remove_directory(self.__project_directory)
+        remove_directory(self.project_directory)
 
     def set_directory(self, path):
         """
         Sets self.project_directory to path
         """
-        self.__project_directory = path
+        self.project_directory = path
         return path
 
     def get_directory(self):
         """
         Sets self.project_directory to path
         """
-        return self.__project_directory
+        return self.project_directory
+
+    def __del__(self):
+        self.clips.close()
+        self.images.close()

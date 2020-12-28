@@ -31,3 +31,12 @@ def compare_dict_keys(dict_a, dict_b, yielder = None):
                 return False
 
     return True
+
+def request_save(project):
+    if project.project_data["clips"] != project.clips:
+        return True
+        
+    if project.project_data["images"] != project.images:
+        return True
+
+    return False

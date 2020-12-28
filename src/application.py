@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QMenuBar, QFileD
 from PyQt5.QtCore import Qt, QEvent
 from project import Project
 from json_lib import JSON
-from exlib import remove_directory, compare_dict_keys
+from exlib import remove_directory, compare_dict_keys, request_save
 from preferences_window import PreferencesApplication as pref_app
 
 CURRENT_DIRECTORY = Path(__file__).parent.absolute()
@@ -49,10 +49,10 @@ class EditorApplication(QWidget, JSON):
         json_data = self.get_json(PREFERENCES_FILE)["last_session_directory"]
 
         if os.path.isdir(json_data):
-            Project(json_data, CURRENT_DIRECTORY, True)
+            self.current_project = Project(json_data, CURRENT_DIRECTORY, True)
             return
         else:
-            Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY)
+            self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY)
 
     def init_ui(self):
         """
@@ -83,7 +83,7 @@ class EditorApplication(QWidget, JSON):
         action_file = menu_bar.addMenu("File")
 
         def new_file():
-            Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY)
+            self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY)
         action_file.addAction("New").triggered.connect(new_file)
 
         def open_file():
@@ -120,7 +120,7 @@ class EditorApplication(QWidget, JSON):
                     fail_dialog(dialog, missing)
                     return
                 else:
-                    Project(dir_, CURRENT_DIRECTORY, True)
+                    self.current_project = Project(dir_, CURRENT_DIRECTORY, True)
         action_file.addAction("Open").triggered.connect(open_file)
 
         def save_file():
@@ -195,16 +195,27 @@ class EditorApplication(QWidget, JSON):
         """
         Handles close events
         """
-        if os.path.isdir(self.project_directory):
-            child = Path(self.project_directory)
-            test_root = Path(Path(__file__).parent.absolute())
+        c_d = self.current_project.get_directory()
+        if os.path.isdir(c_d):
+            if request_save(self.current_project):
+                dialog = QMessageBox()
+                dialog.setText("Project has been modified and is not saved.")
+                dialog.setInformativeText("Would you like to save your data?")
+                dialog.setStandardButtons(QMessageBox.Ok | QMessageBox.No)
 
-            if test_root in child.parents:
-                remove_directory(self.project_directory)
+                ret = dialog.exec_()
+                if ret:
+                    if ret == QMessageBox.Ok:
+                        self.current_project.save()
+                    elif ret == QMessageBox.No:
+                        remove_directory(c_d)
+                else:
+                    remove_directory(c_d)
 
             json_data = self.get_json(PREFERENCES_FILE)
-            json_data["last_session_directory"] = self.current_project.get_directory()
-            self.write_json(PREFERENCES_FILE, json_data)
+            if Path(json_data["last_session_directory"]).parent != CURRENT_DIRECTORY:
+                json_data["last_session_directory"] = c_d
+                self.write_json(PREFERENCES_FILE, json_data)
 
     def load_json_preferences(self, file):
         """
@@ -243,7 +254,7 @@ class EditorApplication(QWidget, JSON):
         "maximized": False,
         "fullscreen": False,
         "warn_non_save": True,
-        "last_session_directory": None,
+        "last_session_directory": "",
 
         "WindowPosition": {
             "X": 0,
