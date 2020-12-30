@@ -146,44 +146,25 @@ class EditorApplication(QWidget, JSON):
         open_f.triggered.connect(open_file)
 
         def save_file():
-            dialog = QFileDialog()
-            dialog.setAcceptMode(QFileDialog.AcceptSave)
-            dialog.setFileMode(QFileDialog.DirectoryOnly)
-
-            def fail_dialog(reject):
-                """
-                Dialog to display when an invalid directory is chosen
-                """
-                fail = QMessageBox()
-                fail.setText("Directory should be empty")
-                fail.setInformativeText("Please choose a different directory.")
-                fail.setIcon(QMessageBox.Information)
-                fail.setStandardButtons(QMessageBox.Ok)
-                fail.exec_()
-                reject.reject()
-                open_file()
-
-            if dialog.exec_():
-                dir_ = dialog.selectedFiles()[0]
-
-                if len(os.listdir(dir_)) == 0:
-                    self.current_project.save()
-                else:
-                    fail_dialog(dialog)
+            self.current_project = self.current_project.save()
         save = action_file.addAction("Save")
         save.setShortcut("Ctrl+S")
         save.setStatusTip('Save File')
         save.triggered.connect(save_file)
 
+        def save_file_as():
+            self.current_project = self.current_project.save_as()
         save_f_as = action_file.addAction("Save As")
         save_f_as.setShortcut("Ctrl+Shift+S")
         save_f_as.setStatusTip("Save Project As")
+        save_f_as.triggered.connect(save_file_as)
         action_file.addSeparator()
         action_file.addAction("Quit").triggered.connect(self.close)
 
         action_file = menu_bar.addMenu("Edit")
         action_file.addAction("Undo")
         action_file.addAction("Redo")
+
         action_file.addSeparator()
         def preferences_():
             """

@@ -1,7 +1,9 @@
 import os
 from pathlib import Path
+from PyQt5.QtWidgets import QFileDialog
 from json_lib import JSON
 from exlib import remove_directory
+from shutil import copyfile
 
 class Project(JSON):
     """
@@ -44,14 +46,25 @@ class Project(JSON):
             self.write_json(self.clips, self.project_data["clips.json"])
             self.write_json(self.images, self.project_data["images.json"])
 
+        return self
+
     def save_as(self):
         """
         Handles save as command
         """
-        if Path(self.project_directory).parent == self.current_directory:
-            remove_directory(self.project_directory)
-        else:
-            pass
+        dialog = QFileDialog()
+        dialog.setAcceptMode(QFileDialog.AcceptSave)
+        dialog.setFileMode(QFileDialog.DirectoryOnly)
+
+        if dialog.exec_() == QFileDialog.AcceptSave:
+            file = dialog.selectedFiles()[0]
+            if Path(self.project_directory).parent == self.current_directory:
+                copyfile(self.project_directory, file)
+                remove_directory(self.project_directory)
+            else:
+                self.save()
+                copyfile(self.project_directory, file)
+            return Project(file, self.current_directory, True)
 
     def set_directory(self, path):
         """
