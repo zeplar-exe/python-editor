@@ -48,11 +48,11 @@ class EditorApplication(QWidget, JSON):
         """
         json_data = self.get_json(PREFERENCES_FILE)["last_session_directory"]
 
-        if os.path.isdir(json_data):
-            self.current_project = Project(json_data, CURRENT_DIRECTORY, True)
+        if json_data and os.path.isdir(json_data):
+            self.current_project = Project(json_data, CURRENT_DIRECTORY, False, True)
             return
         else:
-            self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY)
+            self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY, True)
 
     def init_ui(self):
         """
@@ -83,8 +83,17 @@ class EditorApplication(QWidget, JSON):
         action_file = menu_bar.addMenu("File")
 
         def new_file():
-            self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY)
-        action_file.addAction("New").triggered.connect(new_file)
+            response, dialog = request_save(self.current_project)
+            if response == QMessageBox.Ok:
+                if CURRENT_DIRECTORY in Path(self.current_project.get_directory()).parents:
+                    remove_directory(self.current_project.get_directory())
+                self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY, True)
+            else:
+                dialog.reject()
+        new_f = action_file.addAction("New")
+        new_f.setShortcut("Ctrl+N")
+        new_f.setStatusTip("New Project")
+        new_f.triggered.connect(new_file)
 
         def open_file():
             dialog = QFileDialog()
@@ -120,12 +129,21 @@ class EditorApplication(QWidget, JSON):
                     fail_dialog(dialog, missing)
                     return
                 else:
-                    self.current_project = Project(dir_, CURRENT_DIRECTORY, True)
-        action_file.addAction("Open").triggered.connect(open_file)
+                    if CURRENT_DIRECTORY in Path(self.current_project.get_directory()).parents:
+                        response, dialog = request_save(self.current_project)
+                        if response == QMessageBox.Ok:
+                            remove_directory(self.current_project.get_directory())
+                            self.current_project = Project(dir_, CURRENT_DIRECTORY, True)
+                        else:
+                            dialog.reject()
+        open_f = action_file.addAction("Open")
+        open_f.setShortcut("Ctrl+O")
+        open_f.setStatusTip("Open Project")
+        open_f.triggered.connect(open_file)
 
         def save_file():
             dialog = QFileDialog()
-            dialog.setAcceptMode(QFileDialog.AcceptOpen)
+            dialog.setAcceptMode(QFileDialog.AcceptSave)
             dialog.setFileMode(QFileDialog.DirectoryOnly)
 
             def fail_dialog(reject):
@@ -148,8 +166,14 @@ class EditorApplication(QWidget, JSON):
                     self.current_project.save()
                 else:
                     fail_dialog(dialog)
-        action_file.addAction("Save").triggered.connect(save_file)
-        action_file.addAction("Save As")
+        save = action_file.addAction("Save")
+        save.setShortcut("Ctrl+S")
+        save.setStatusTip('Save File')
+        save.triggered.connect(save_file)
+
+        save_f_as = action_file.addAction("Save As")
+        save_f_as.setShortcut("Ctrl+Shift+S")
+        save_f_as.setStatusTip("Save Project As")
         action_file.addSeparator()
         action_file.addAction("Quit").triggered.connect(self.close)
 
@@ -196,6 +220,17 @@ class EditorApplication(QWidget, JSON):
         Handles close events
         """
         c_d = self.current_project.get_directory()
+        if self.current_project.temporary:
+            response, dialog = request_save(self.current_project)
+
+            if response == QMessageBox.Ok:
+                remove_directory(c_d)
+            elif response == QMessageBox.Cancel:
+                dialog.reject()
+            else:
+                remove_directory(c_d)
+            return
+
         if os.path.isdir(c_d):
             if request_save(self.current_project):
                 dialog = QMessageBox()

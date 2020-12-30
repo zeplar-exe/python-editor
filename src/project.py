@@ -8,10 +8,11 @@ class Project(JSON):
     Project class, mainly for directory management
     """
 
-    def __init__(self, directory, app_directory, opening = None):
+    def __init__(self, directory, app_directory, temporary, opening = None):
         self.current_directory = app_directory
         self.project_directory = directory
         self.saved = False
+        self.temporary = temporary
         self.project_data = {
             "clips": [],
             "images": []
@@ -19,16 +20,18 @@ class Project(JSON):
 
         if opening is None:
             os.mkdir(directory)
-            open(os.path.join(directory, "clips.json"), "x").close()
-            open(os.path.join(directory, "images.json"), "x").close()
+            c_dir = os.path.join(directory, "clips.json")
+            i_dir = os.path.join(directory, "images.json")
+            open(c_dir, "x").close()
+            self.write_json(c_dir, {})
+            open(i_dir, "x").close()
+            self.write_json(i_dir, {})
 
-        self.clips = os.path.join(directory, "clips.json")
-        with open(self.clips) as f_data:
-            self.project_data["clips"] = f_data
+        self.clips = self.get_json(os.path.join(directory, "images.json"))
+        self.project_data["clips"] = self.clips
 
-        self.images = open(os.path.join(directory, "images.json"))
-        with open(self.images) as f_data:
-            self.project_data["images"] = f_data
+        self.images = self.get_json(os.path.join(directory, "clips.json"))
+        self.project_data["images"] = self.images
 
         os.mkdir(os.path.join(self.project_directory, "clips"))
         os.mkdir(os.path.join(self.project_directory, "images"))
@@ -37,30 +40,21 @@ class Project(JSON):
         """
         Handles save command
         """
-        if Path(self.project_directory).parent == self.current_directory:
+        if self.current_directory in Path(self.project_directory).parents:
             remove_directory(self.project_directory)
             self.save_as()
         else:
             self.write_json(self.clips, self.project_data["clips"])
             self.write_json(self.images, self.project_data["images"])
 
-    def save_as(self, directory = ""):
+    def save_as(self):
         """
         Handles save as command
         """
-        if not directory:
-            pass
-
         if Path(self.project_directory).parent == self.current_directory:
             remove_directory(self.project_directory)
         else:
             pass
-
-    def release(self):
-        """
-        Removes project directory
-        """
-        remove_directory(self.project_directory)
 
     def set_directory(self, path):
         """
@@ -74,7 +68,3 @@ class Project(JSON):
         Sets self.project_directory to path
         """
         return self.project_directory
-
-    def __del__(self):
-        self.clips.close()
-        self.images.close()

@@ -1,4 +1,5 @@
 import os
+from PyQt5.QtWidgets import QMessageBox
 
 def remove_directory(dir_):
     """
@@ -8,9 +9,14 @@ def remove_directory(dir_):
         full_name = os.path.join(dir_, file)
         if os.path.isdir(full_name):
             remove_directory(full_name)
-            os.removedirs(full_name)
         else:
             os.remove(full_name)
+
+    if os.path.isdir(dir_):
+        os.removedirs(dir_)
+    else:
+        os.remove(dir_)
+
 
 def compare_dict_keys(dict_a, dict_b, yielder = None):
     """
@@ -33,10 +39,24 @@ def compare_dict_keys(dict_a, dict_b, yielder = None):
     return True
 
 def request_save(project):
-    if project.project_data["clips"] != project.clips:
-        return True
-        
-    if project.project_data["images"] != project.images:
-        return True
+    """
+    Checks if project has been modified
+    """
+    modified = False
 
-    return False
+    if project.project_data["clips"] != project.clips:
+        modified = True
+
+    if project.project_data["images"] != project.images:
+        modified = True
+
+    if modified:
+        dialog = QMessageBox()
+        dialog.setText("Project modifications have been found")
+        dialog.setInformativeText("Are you sure you would like to discard unsaved changes?")
+        dialog.setIcon(QMessageBox.Information)
+        dialog.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+
+        return dialog.exec_(), dialog
+
+    return 0, 0
