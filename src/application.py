@@ -88,8 +88,12 @@ class EditorApplication(QWidget, JSON):
                 if CURRENT_DIRECTORY in Path(self.current_project.get_directory()).parents:
                     remove_directory(self.current_project.get_directory())
                 self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY, True)
-            else:
+            elif isinstance(dialog, QMessageBox):
                 dialog.reject()
+            else:
+                if CURRENT_DIRECTORY in Path(self.current_project.get_directory()).parents:
+                    remove_directory(self.current_project.get_directory())
+                self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY, True)
         new_f = action_file.addAction("New")
         new_f.setShortcut("Ctrl+N")
         new_f.setStatusTip("New Project")

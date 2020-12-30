@@ -38,16 +38,25 @@ def compare_dict_keys(dict_a, dict_b, yielder = None):
 
     return True
 
+def get_keys(dictionary):
+    ret = []
+    for key in dictionary:
+        ret.append(key)
+    return ret
+
 def request_save(project):
     """
     Checks if project has been modified
     """
     modified = False
 
-    if project.project_data["clips"] != project.clips:
+    if project.project_data["clips.json"] != project.clips:
         modified = True
 
-    if project.project_data["images"] != project.images:
+    if project.project_data["images.json"] != project.images:
+        modified = True
+
+    if get_keys(project.project_data) != os.listdir(project.get_directory()):
         modified = True
 
     if modified:

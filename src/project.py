@@ -14,8 +14,8 @@ class Project(JSON):
         self.saved = False
         self.temporary = temporary
         self.project_data = {
-            "clips": [],
-            "images": []
+            "clips.json": [],
+            "images.json": []
         }
 
         if opening is None:
@@ -28,13 +28,10 @@ class Project(JSON):
             self.write_json(i_dir, {})
 
         self.clips = self.get_json(os.path.join(directory, "images.json"))
-        self.project_data["clips"] = self.clips
+        self.project_data["clips.json"] = self.clips
 
         self.images = self.get_json(os.path.join(directory, "clips.json"))
-        self.project_data["images"] = self.images
-
-        os.mkdir(os.path.join(self.project_directory, "clips"))
-        os.mkdir(os.path.join(self.project_directory, "images"))
+        self.project_data["images.json"] = self.images
 
     def save(self):
         """
@@ -44,8 +41,8 @@ class Project(JSON):
             remove_directory(self.project_directory)
             self.save_as()
         else:
-            self.write_json(self.clips, self.project_data["clips"])
-            self.write_json(self.images, self.project_data["images"])
+            self.write_json(self.clips, self.project_data["clips.json"])
+            self.write_json(self.images, self.project_data["images.json"])
 
     def save_as(self):
         """
