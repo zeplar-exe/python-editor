@@ -1,16 +1,16 @@
 import os
 from pathlib import Path
+from shutil import copytree
 from PyQt5.QtWidgets import QFileDialog
 from json_lib import JSON
 from exlib import remove_directory
-from shutil import copyfile
 
 class Project(JSON):
     """
     Project class, mainly for directory management
     """
 
-    def __init__(self, directory, app_directory, temporary, opening = None):
+    def __init__(self, directory, app_directory, temporary = False, opening = None):
         self.current_directory = app_directory
         self.project_directory = directory
         self.saved = False
@@ -40,11 +40,11 @@ class Project(JSON):
         Handles save command
         """
         if self.current_directory in Path(self.project_directory).parents:
-            remove_directory(self.project_directory)
-            self.save_as()
+            new = self.save_as()
+            return new
         else:
-            self.write_json(self.clips, self.project_data["clips.json"])
-            self.write_json(self.images, self.project_data["images.json"])
+            self.write_json(os.path.join(self.project_directory, "images.json"), self.project_data["clips.json"])
+            self.write_json(os.path.join(self.project_directory, "clips.json"), self.project_data["images.json"])
 
         return self
 
@@ -53,18 +53,20 @@ class Project(JSON):
         Handles save as command
         """
         dialog = QFileDialog()
-        dialog.setAcceptMode(QFileDialog.AcceptSave)
+        dialog.setAcceptMode(QFileDialog.AcceptOpen)
         dialog.setFileMode(QFileDialog.DirectoryOnly)
 
-        if dialog.exec_() == QFileDialog.AcceptSave:
+        if dialog.exec_():
             file = dialog.selectedFiles()[0]
             if Path(self.project_directory).parent == self.current_directory:
-                copyfile(self.project_directory, file)
+                remove_directory(file)
+                copytree(self.project_directory, file)
                 remove_directory(self.project_directory)
             else:
                 self.save()
-                copyfile(self.project_directory, file)
-            return Project(file, self.current_directory, True)
+                os.removedirs(file)
+                copytree(self.project_directory, file)
+            return Project(file, self.current_directory, opening=True)
 
     def set_directory(self, path):
         """

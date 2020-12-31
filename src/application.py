@@ -138,7 +138,7 @@ class EditorApplication(QWidget, JSON):
                         if response == QMessageBox.Ok:
                             remove_directory(self.current_project.get_directory())
                             self.current_project = Project(dir_, CURRENT_DIRECTORY, True)
-                        else:
+                        elif isinstance(dialog, QMessageBox):
                             dialog.reject()
         open_f = action_file.addAction("Open")
         open_f.setShortcut("Ctrl+O")

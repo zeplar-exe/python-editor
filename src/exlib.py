@@ -38,7 +38,10 @@ def compare_dict_keys(dict_a, dict_b, yielder = None):
 
     return True
 
-def get_keys(dictionary):
+def get_keys(dictionary: dict):
+    """
+    Return a list of keys from a dictionary
+    """
     ret = []
     for key in dictionary:
         ret.append(key)
