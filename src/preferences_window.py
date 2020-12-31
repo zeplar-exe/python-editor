@@ -1,5 +1,4 @@
-from PyQt5.QtWidgets import QWidget, QGridLayout, QCheckBox, QPushButton, QMessageBox
-from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QWidget, QCheckBox, QPushButton, QMessageBox
 from json_lib import JSON
 #import graphics as gp
 
@@ -25,13 +24,8 @@ class PreferencesApplication(QWidget, JSON):
         """
         Initiates window UI specifics
         """
-        grid = QGridLayout()
-        grid.setAlignment(Qt.AlignLeft)
-        grid.setSpacing(2)
-        self.setLayout(grid)
-
         self.setWindowTitle("Preferences")
-        self.size_x = 500
+        self.size_x = 400
         self.size_y = 500
 
         self.setGeometry(
@@ -43,19 +37,15 @@ class PreferencesApplication(QWidget, JSON):
 
         pref_data = self.get_json(PREFERENCES_FILE)
 
-        textbox_f = QCheckBox("Open editor in fullscreen mode")
+        checkbox_f = QCheckBox("Open editor in fullscreen mode", parent=self)
         if pref_data.get("fullscreen") is True:
-            textbox_f.setChecked(True)
+            checkbox_f.setChecked(True)
 
-        textbox_w = QCheckBox("Warn when exiting without saving")
+        checkbox_w = QCheckBox("Warn when exiting without saving", parent=self)
         if pref_data.get("warn_non_save") is True:
-            textbox_w.setChecked(True)
+            checkbox_w.setChecked(True)
 
-        grid.addWidget(textbox_f, 0, 0)
-        grid.addWidget(textbox_w, 0, 0)
-
-        close_button = QPushButton("Exit without Saving")
-        grid.addWidget(close_button)
+        close_button = QPushButton("Exit without Saving", parent=self)
         def close_():
             if textbox_w.isChecked():
                 dialog = QMessageBox()
@@ -78,8 +68,7 @@ class PreferencesApplication(QWidget, JSON):
                 self.close()
         close_button.clicked.connect(close_)
 
-        close_save_button = QPushButton("Save and Exit")
-        grid.addWidget(close_save_button)
+        close_save_button = QPushButton("Save and Exit", parent=self)
         def save_close():
             close_save_button.setCheckable(False)
 

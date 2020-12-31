@@ -68,13 +68,6 @@ class Project(JSON):
                 copytree(self.project_directory, file)
             return Project(file, self.current_directory, opening=True)
 
-    def set_directory(self, path):
-        """
-        Sets self.project_directory to path
-        """
-        self.project_directory = path
-        return path
-
     def get_directory(self):
         """
         Sets self.project_directory to path
