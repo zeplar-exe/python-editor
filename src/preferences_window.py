@@ -47,7 +47,7 @@ class PreferencesApplication(QWidget, JSON):
 
         close_button = QPushButton("Exit without Saving", parent=self)
         def close_():
-            if textbox_w.isChecked():
+            if checkbox_w.isChecked():
                 dialog = QMessageBox()
                 dialog.setIcon(QMessageBox.Question)
                 dialog.setText("Preferences may have been modified")
@@ -72,7 +72,7 @@ class PreferencesApplication(QWidget, JSON):
         def save_close():
             close_save_button.setCheckable(False)
 
-            data = {"fullscreen": textbox_f.isChecked(), "warn_non_save": textbox_w.isChecked()}
+            data = {"fullscreen": checkbox_f.isChecked(), "warn_non_save": checkbox_w.isChecked()}
             new = self.get_json(PREFERENCES_FILE)
             for key in data:
                 new[key] = data[key]

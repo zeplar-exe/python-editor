@@ -1,4 +1,5 @@
 import os
+from json_lib import JSON
 from PyQt5.QtWidgets import QMessageBox
 
 def remove_directory(dir_):
@@ -63,12 +64,13 @@ def request_save(project):
         modified = True
 
     if modified:
-        dialog = QMessageBox()
-        dialog.setText("Project modifications have been found")
-        dialog.setInformativeText("Are you sure you would like to discard unsaved changes?")
-        dialog.setIcon(QMessageBox.Information)
-        dialog.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
+        if JSON.get_json(None, "user_preferences.json")["warn_non_save"]:
+            dialog = QMessageBox()
+            dialog.setText("Project modifications have been found")
+            dialog.setInformativeText("Are you sure you would like to discard unsaved changes?")
+            dialog.setIcon(QMessageBox.Information)
+            dialog.setStandardButtons(QMessageBox.Ok | QMessageBox.Cancel)
 
-        return dialog.exec_(), dialog
+            return dialog.exec_(), dialog
 
     return 0, 0
