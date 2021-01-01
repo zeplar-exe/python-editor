@@ -29,30 +29,37 @@ class EditorApplication(QWidget, JSON):
 
         self.setMinimumSize(300, 225)
         self.current_project = None
+        self.current_preferences = None
         self.size_x = 0
         self.size_y = 0
 
-        self.screen = app.primaryScreen()
-        self.screen_size = self.screen.size()
+        self.screen_size = app.primaryScreen().size()
 
         self.load_json_preferences(PREFERENCES_FILE)
         self.init_ui()
         self.init_menubar()
         self.init_project()
 
-        self.pref_dialog = pref_app(self)
+        #self.pref_dialog = pref_app(self)
 
     def init_project(self):
         """
         Creates base project file for temporary use
         """
-        json_data = self.get_json(PREFERENCES_FILE)["last_session_directory"]
+        json_data = self.get_json(PREFERENCES_FILE)
+        last_session = json_data["last_session_directory"]
 
-        if json_data and os.path.isdir(json_data):
-            self.current_project = Project(json_data, CURRENT_DIRECTORY, False, True)
+        if os.path.isdir(last_session):
+            self.current_project = Project(last_session, CURRENT_DIRECTORY, False, True)
             return
         else:
-            self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY, True)
+            json_data["last_session_directory"] = ""
+            self.write_json(PREFERENCES_FILE, json_data)
+            self.current_project = Project(
+                os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), 
+                CURRENT_DIRECTORY, 
+                True
+            )
 
     def init_ui(self):
         """
@@ -96,7 +103,7 @@ class EditorApplication(QWidget, JSON):
                 self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY, True)
         new_f = action_file.addAction("New")
         new_f.setShortcut("Ctrl+N")
-        new_f.setStatusTip("New Project")
+        new_f.setToolTip("New Project")
         new_f.triggered.connect(new_file)
 
         def open_file():
@@ -142,35 +149,44 @@ class EditorApplication(QWidget, JSON):
                             dialog.reject()
         open_f = action_file.addAction("Open")
         open_f.setShortcut("Ctrl+O")
-        open_f.setStatusTip("Open Project")
+        open_f.setToolTip("Open Project")
         open_f.triggered.connect(open_file)
 
         def save_file():
             self.current_project = self.current_project.save()
         save = action_file.addAction("Save")
         save.setShortcut("Ctrl+S")
-        save.setStatusTip('Save File')
+        save.setToolTip('Save File')
         save.triggered.connect(save_file)
 
         def save_file_as():
             self.current_project = self.current_project.save_as()
         save_f_as = action_file.addAction("Save As")
         save_f_as.setShortcut("Ctrl+Shift+S")
-        save_f_as.setStatusTip("Save Project As")
+        save_f_as.setToolTip("Save Project As")
         save_f_as.triggered.connect(save_file_as)
+
         action_file.addSeparator()
-        action_file.addAction("Quit").triggered.connect(self.close)
+        quit_b = action_file.addAction("Quit")
+        quit_b.setShortcut("Alt+F4")
+        quit_b.setToolTip("Quit Application")
+        quit_b.triggered.connect(self.close)
 
         action_file = menu_bar.addMenu("Edit")
-        action_file.addAction("Undo")
-        action_file.addAction("Redo")
+        undo = action_file.addAction("Undo")
+        undo.setShortcut("Ctrl+Z")
+        undo.setToolTip("Undo Action")
+        redo = action_file.addAction("Redo")
+        redo.setShortcut("Ctrl+Shift+Z")
+        redo.setToolTip("Redo Action")
 
         action_file.addSeparator()
         def preferences_():
             """
             Instiantates preferences window
             """
-            self.pref_dialog.show()
+            self.current_preferences = pref_app(self)
+            self.current_preferences.show()
         action_file.addAction("Preferences").triggered.connect(preferences_)
 
         layout.addWidget(menu_bar)

@@ -1,6 +1,6 @@
 import os
-from json_lib import JSON
 from PyQt5.QtWidgets import QMessageBox
+from json_lib import JSON
 
 def remove_directory(dir_):
     """
