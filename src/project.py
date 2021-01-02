@@ -5,15 +5,17 @@ from PyQt5.QtWidgets import QFileDialog
 from json_lib import JSON
 from exlib import remove_directory
 
+
 class Project(JSON):
     """
     Project class, mainly for directory management
     """
 
-    def __init__(self, directory, app_directory, temporary = False, opening = None):
+    def __init__(self, directory, app_directory, temporary=False, opening=None):
         self.current_directory = app_directory
         self.project_directory = directory
         self.saved = False
+        self.current_frame = 0
         self.temporary = temporary
         self.project_data = {
             "clips.json": [],
@@ -24,6 +26,7 @@ class Project(JSON):
             os.mkdir(directory)
             c_dir = os.path.join(directory, "clips.json")
             i_dir = os.path.join(directory, "images.json")
+
             open(c_dir, "x").close()
             self.write_json(c_dir, {})
             open(i_dir, "x").close()

@@ -1,7 +1,7 @@
 import sys
 import os
 from pathlib import Path
-from PyQt5.QtWidgets import QApplication, QWidget, QGridLayout, QMenuBar, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QMenuBar, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QEvent
 from project import Project
 from json_lib import JSON
@@ -18,6 +18,8 @@ REQUIRED_PROJECT_FILES = {
         "images.json"
     ],
 }
+# TODO: Decide upon a library to use for video manipulation
+
 
 class EditorApplication(QWidget, JSON):
     """
@@ -40,8 +42,6 @@ class EditorApplication(QWidget, JSON):
         self.init_menubar()
         self.init_project()
 
-        #self.pref_dialog = pref_app(self)
-
     def init_project(self):
         """
         Creates base project file for temporary use
@@ -56,8 +56,8 @@ class EditorApplication(QWidget, JSON):
             json_data["last_session_directory"] = ""
             self.write_json(PREFERENCES_FILE, json_data)
             self.current_project = Project(
-                os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), 
-                CURRENT_DIRECTORY, 
+                os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"),
+                CURRENT_DIRECTORY,
                 True
             )
 
@@ -66,8 +66,8 @@ class EditorApplication(QWidget, JSON):
         Initiates window UI specifics
         """
         self.setWindowTitle("editor.py")
-        self.size_x = (self.screen_size.width()/5)*4
-        self.size_y = (self.screen_size.height()/4)*3
+        self.size_x = (self.screen_size.width() / 5) * 4  # 4/5 of the screen size
+        self.size_y = (self.screen_size.height() / 4) * 3  # 3/4 of the screen size
 
         data = self.get_json(PREFERENCES_FILE)
         self.setGeometry(
@@ -79,13 +79,13 @@ class EditorApplication(QWidget, JSON):
 
     def init_menubar(self):
         """
-        Initiates window toolbar
+        Initiates window menubar
         """
-        layout = QGridLayout()
+        layout = QHBoxLayout()
         self.setLayout(layout)
 
         menu_bar = QMenuBar()
-        layout.addWidget(menu_bar, 0, 0)
+        layout.addWidget(menu_bar)
 
         action_file = menu_bar.addMenu("File")
 
@@ -94,13 +94,19 @@ class EditorApplication(QWidget, JSON):
             if response == QMessageBox.Ok:
                 if CURRENT_DIRECTORY in Path(self.current_project.get_directory()).parents:
                     remove_directory(self.current_project.get_directory())
-                self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY, True)
+                self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY,
+                                               True)
             elif isinstance(dialog, QMessageBox):
                 dialog.reject()
             else:
                 if CURRENT_DIRECTORY in Path(self.current_project.get_directory()).parents:
                     remove_directory(self.current_project.get_directory())
-                self.current_project = Project(os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"), CURRENT_DIRECTORY, True)
+                self.current_project = Project(
+                    os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"),
+                    CURRENT_DIRECTORY,
+                    True
+                )
+
         new_f = action_file.addAction("New")
         new_f.setShortcut("Ctrl+N")
         new_f.setToolTip("New Project")
@@ -111,13 +117,13 @@ class EditorApplication(QWidget, JSON):
             dialog.setAcceptMode(QFileDialog.AcceptOpen)
             dialog.setFileMode(QFileDialog.DirectoryOnly)
 
-            def fail_dialog(reject, missing):
+            def fail_dialog(reject, missing_elements):
                 """
                 Dialog to display when an invalid directory is chosen
                 """
                 fail = QMessageBox()
                 fail.setText("File to open should be a valid project directory.")
-                fail.setInformativeText("Missing {0}".format(", ".join(missing)))
+                fail.setInformativeText("Missing {0}".format(", ".join(missing_elements)))
                 fail.setIcon(QMessageBox.Information)
                 fail.setStandardButtons(QMessageBox.Ok)
                 fail.exec_()
@@ -147,6 +153,7 @@ class EditorApplication(QWidget, JSON):
                             self.current_project = Project(dir_, CURRENT_DIRECTORY, True)
                         elif isinstance(dialog, QMessageBox):
                             dialog.reject()
+
         open_f = action_file.addAction("Open")
         open_f.setShortcut("Ctrl+O")
         open_f.setToolTip("Open Project")
@@ -154,6 +161,7 @@ class EditorApplication(QWidget, JSON):
 
         def save_file():
             self.current_project = self.current_project.save()
+
         save = action_file.addAction("Save")
         save.setShortcut("Ctrl+S")
         save.setToolTip('Save File')
@@ -161,6 +169,7 @@ class EditorApplication(QWidget, JSON):
 
         def save_file_as():
             self.current_project = self.current_project.save_as()
+
         save_f_as = action_file.addAction("Save As")
         save_f_as.setShortcut("Ctrl+Shift+S")
         save_f_as.setToolTip("Save Project As")
@@ -181,12 +190,15 @@ class EditorApplication(QWidget, JSON):
         redo.setToolTip("Redo Action")
 
         action_file.addSeparator()
+
         def preferences_():
             """
-            Instiantates preferences window
+            Instantiates preferences window
             """
-            self.current_preferences = pref_app(self)
-            self.current_preferences.show()
+            if self.current_preferences is None:
+                self.current_preferences = pref_app(self)
+                self.current_preferences.show()
+
         action_file.addAction("Preferences").triggered.connect(preferences_)
 
         layout.addWidget(menu_bar)
@@ -255,7 +267,7 @@ class EditorApplication(QWidget, JSON):
 
     def load_json_preferences(self, file):
         """
-        Reads preferences json file and loads neccessary properties and functions.
+        Reads preferences json file and loads necessary properties and functions.
         If json data does not exist, it is created.
         """
 
@@ -297,6 +309,7 @@ class EditorApplication(QWidget, JSON):
             "Y": 0
         }
     }
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

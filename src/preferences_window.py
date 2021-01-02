@@ -1,33 +1,36 @@
 from PyQt5.QtWidgets import QWidget, QFrame, QVBoxLayout, QCheckBox, QPushButton, QMessageBox
 from json_lib import JSON
-#import graphics as gp
 
 PREFERENCES_FILE = "user_preferences.json"
+
 
 class PreferencesApplication(QWidget, JSON):
     """
     Main class for pyqt application
     """
+
     def __init__(self, main):
         """
         Class Initiator
         """
         super().__init__()
 
+        self.main = main
         self.setMinimumSize(300, 225)
         self.size_x = 0
         self.size_y = 0
 
-        self.init_ui(main)
+        self.init_ui()
 
-    def init_ui(self, main):
+    def init_ui(self):
         """
         Initiates window UI specifics
         """
+        main = self.main
         self.setWindowTitle("Preferences")
-        self.size_x = (main.screen_size.width()/10)*3.3 #400
-        self.size_y = (main.screen_size.height()/10)*7 #500
-        layout = QVBoxLayout() #QGridLayout()
+        self.size_x = (main.screen_size.width() / 10) * 3.3  # 400
+        self.size_y = (main.screen_size.height() / 10) * 7  # 500
+        layout = QVBoxLayout()  # QGridLayout()
         layout.setSpacing(2)
         frame_layout = QVBoxLayout()
         frame_layout.setSpacing(2)
@@ -38,7 +41,7 @@ class PreferencesApplication(QWidget, JSON):
         )
 
         frame = QFrame(self)
-        frame.setFixedSize(self.size_x, (self.size_y/10)*7.5)
+        frame.setFixedSize(self.size_x, (self.size_y / 10) * 7.5)
         frame.setFrameShape(QFrame.StyledPanel)
         frame.setLineWidth(0)
         layout.addWidget(frame)
@@ -57,6 +60,7 @@ class PreferencesApplication(QWidget, JSON):
 
         close_button = QPushButton("Exit without Saving", parent=self)
         layout.addWidget(close_button)
+
         def close_():
             if checkbox_w.isChecked():
                 dialog = QMessageBox()
@@ -77,10 +81,12 @@ class PreferencesApplication(QWidget, JSON):
                     dialog.reject()
             else:
                 self.close()
+
         close_button.clicked.connect(close_)
 
         close_save_button = QPushButton("Save and Exit", parent=self)
         layout.addWidget(close_save_button)
+
         def save_close():
             close_save_button.setCheckable(False)
 
@@ -93,7 +99,11 @@ class PreferencesApplication(QWidget, JSON):
             main.load_json_preferences(PREFERENCES_FILE)
 
             self.close()
+
         close_save_button.clicked.connect(save_close)
 
         self.setLayout(layout)
         frame.setLayout(frame_layout)
+
+    def closeEvent(self):
+        self.main.current_preferences = None

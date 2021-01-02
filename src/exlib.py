@@ -2,6 +2,7 @@ import os
 from PyQt5.QtWidgets import QMessageBox
 from json_lib import JSON
 
+
 def remove_directory(dir_):
     """
     Recursively removes a directory and files/directories inside of it
@@ -19,7 +20,7 @@ def remove_directory(dir_):
         os.remove(dir_)
 
 
-def compare_dict_keys(dict_a, dict_b, yielder = None):
+def compare_dict_keys(dict_a, dict_b, yielder=None):
     """
     Compares the keys of two dictionaries, checking if they both have the same keys.
     """
@@ -39,6 +40,7 @@ def compare_dict_keys(dict_a, dict_b, yielder = None):
 
     return True
 
+
 def get_keys(dictionary: dict):
     """
     Return a list of keys from a dictionary
@@ -47,6 +49,7 @@ def get_keys(dictionary: dict):
     for key in dictionary:
         ret.append(key)
     return ret
+
 
 def request_save(project):
     """

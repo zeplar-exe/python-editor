@@ -1,10 +1,13 @@
 import json
 
+
 class JSON:
     """
     Class holding basic JSON methods
     """
-    def write_json(self, file, data):
+
+    @staticmethod
+    def write_json(file, data):
         """
         Writes 'data' to the given json file
         """
@@ -12,7 +15,8 @@ class JSON:
             json.dump(data, json_file)
             return data
 
-    def get_json(self, file):
+    @staticmethod
+    def get_json(file):
         """
         Returns json data
         """
