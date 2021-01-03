@@ -18,11 +18,9 @@ class Home:
     class ProjectHistory(QWidget, JSON):
         pass  # TODO: Design a window that displays project history (for undo/redo)
 
-
-class PlaylistEditor(QWidget, JSON):
-    Imports = Home.Imports
-
-    Properties = Home.Properties
-
     class EditorWindow(QWidget, JSON):
-        pass  # TODO: Design a window that acts as a built in file editor for imported items
+        pass  # TODO: Design a window that acts as a built in file editor for imported items and specific frames
+
+    class PresetManager(QWidget, JSON):
+        pass  # TODO: Design a window that holds saved presets and also allows new presets to be made with a name
+        #  DONE: Decide where presets should be stored

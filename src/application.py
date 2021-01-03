@@ -1,15 +1,22 @@
 import sys
 import os
 from pathlib import Path
+import logging
+
 from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QMenuBar, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QEvent
+# import moviepy
+
 from project import Project
+from project_windows import Home
+
 from json_lib import JSON
 from exlib import remove_directory, compare_dict_keys, request_save
 from preferences_window import PreferencesApplication as pref_app
 
 CURRENT_DIRECTORY = Path(__file__).parent.absolute()
 PREFERENCES_FILE = "user_preferences.json"
+PRESETS_FILE = "user_presets.json"
 REQUIRED_PROJECT_FILES = {
     "directory": [],
 
@@ -18,7 +25,6 @@ REQUIRED_PROJECT_FILES = {
         "images.json"
     ],
 }
-# TODO: Decide upon a library to use for video manipulation
 
 
 class EditorApplication(QWidget, JSON):
@@ -38,6 +44,7 @@ class EditorApplication(QWidget, JSON):
         self.screen_size = app.primaryScreen().size()
 
         self.load_json_preferences(PREFERENCES_FILE)
+        self.load_json_presets(PRESETS_FILE)
         self.init_ui()
         self.init_menubar()
         self.init_project()
@@ -47,13 +54,13 @@ class EditorApplication(QWidget, JSON):
         Creates base project file for temporary use
         """
         json_data = self.get_json(PREFERENCES_FILE)
-        last_session = json_data["last_session_directory"]
+        last_session = json_data["Settings"]["last_session_directory"]
 
         if os.path.isdir(last_session):
             self.current_project = Project(last_session, CURRENT_DIRECTORY, False, True)
             return
         else:
-            json_data["last_session_directory"] = ""
+            json_data["Settings"]["last_session_directory"] = ""
             self.write_json(PREFERENCES_FILE, json_data)
             self.current_project = Project(
                 os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"),
@@ -71,8 +78,8 @@ class EditorApplication(QWidget, JSON):
 
         data = self.get_json(PREFERENCES_FILE)
         self.setGeometry(
-            data["WindowPosition"]["X"],
-            data["WindowPosition"]["Y"],
+            data["Window"]["WindowPosition"]["X"],
+            data["Window"]["WindowPosition"]["Y"],
             int(self.size_x),
             int(self.size_y)
         )
@@ -109,7 +116,6 @@ class EditorApplication(QWidget, JSON):
 
         new_f = action_file.addAction("New")
         new_f.setShortcut("Ctrl+N")
-        new_f.setToolTip("New Project")
         new_f.triggered.connect(new_file)
 
         def open_file():
@@ -156,7 +162,6 @@ class EditorApplication(QWidget, JSON):
 
         open_f = action_file.addAction("Open")
         open_f.setShortcut("Ctrl+O")
-        open_f.setToolTip("Open Project")
         open_f.triggered.connect(open_file)
 
         def save_file():
@@ -164,7 +169,6 @@ class EditorApplication(QWidget, JSON):
 
         save = action_file.addAction("Save")
         save.setShortcut("Ctrl+S")
-        save.setToolTip('Save File')
         save.triggered.connect(save_file)
 
         def save_file_as():
@@ -172,22 +176,18 @@ class EditorApplication(QWidget, JSON):
 
         save_f_as = action_file.addAction("Save As")
         save_f_as.setShortcut("Ctrl+Shift+S")
-        save_f_as.setToolTip("Save Project As")
         save_f_as.triggered.connect(save_file_as)
 
         action_file.addSeparator()
         quit_b = action_file.addAction("Quit")
         quit_b.setShortcut("Alt+F4")
-        quit_b.setToolTip("Quit Application")
         quit_b.triggered.connect(self.close)
 
         action_file = menu_bar.addMenu("Edit")
         undo = action_file.addAction("Undo")
         undo.setShortcut("Ctrl+Z")
-        undo.setToolTip("Undo Action")
         redo = action_file.addAction("Redo")
         redo.setShortcut("Ctrl+Shift+Z")
-        redo.setToolTip("Redo Action")
 
         action_file.addSeparator()
 
@@ -201,6 +201,58 @@ class EditorApplication(QWidget, JSON):
 
         action_file.addAction("Preferences").triggered.connect(preferences_)
 
+        action_file = menu_bar.addMenu("Widgets")
+        imports = action_file.addAction("Imports")
+
+        def imports_():
+            pass
+
+        imports.triggered.connect(imports_)
+
+        timeline = action_file.addAction("Timeline")
+
+        def timeline_():
+            pass
+
+        timeline.triggered.connect(timeline_)
+
+        filter_ = action_file.addAction("Filter")
+
+        def filter__():
+            pass
+
+        filter_.triggered.connect(filter__)
+
+        properties = action_file.addAction("Properties")
+
+        def properties_():
+            pass
+
+        properties.triggered.connect(properties_)
+
+        history = action_file.addAction("History")
+
+        def history_():
+            pass
+
+        history.triggered.connect(history_)
+
+        editor = action_file.addAction("Editor Window")
+
+        def editor_():
+            pass
+
+        editor.triggered.connect(editor_)
+
+        action_file.addSeparator()
+        presets = action_file.addAction("Preset Manager")
+
+        def presets_():
+            pass
+
+        presets.triggered.connect(presets_)
+
+        action_file.addSeparator()
         layout.addWidget(menu_bar)
 
     def changeEvent(self, event):
@@ -210,11 +262,11 @@ class EditorApplication(QWidget, JSON):
         if event.type() == QEvent.WindowStateChange:
             if self.windowState() & Qt.WindowMaximized:
                 existing_data = self.get_json(PREFERENCES_FILE)
-                existing_data["maximized"] = True
+                existing_data["Window"]["maximized"] = True
                 self.write_json(PREFERENCES_FILE, existing_data)
             else:
                 existing_data = self.get_json(PREFERENCES_FILE)
-                existing_data["maximized"] = False
+                existing_data["Window"]["maximized"] = False
                 self.write_json(PREFERENCES_FILE, existing_data)
 
     def moveEvent(self, event):
@@ -224,8 +276,8 @@ class EditorApplication(QWidget, JSON):
         if event.type() == QEvent.Move:
             data = self.get_json(PREFERENCES_FILE)
             pos = event.pos()
-            data["WindowPosition"]["X"] = pos.x()
-            data["WindowPosition"]["Y"] = pos.y()
+            data["Window"]["WindowPosition"]["X"] = pos.x()
+            data["Window"]["WindowPosition"]["Y"] = pos.y()
             self.write_json(PREFERENCES_FILE, data)
 
     def closeEvent(self, _):
@@ -261,8 +313,8 @@ class EditorApplication(QWidget, JSON):
                     remove_directory(c_d)
 
             json_data = self.get_json(PREFERENCES_FILE)
-            if Path(json_data["last_session_directory"]).parent != CURRENT_DIRECTORY:
-                json_data["last_session_directory"] = c_d
+            if Path(json_data["Settings"]["last_session_directory"]).parent != CURRENT_DIRECTORY:
+                json_data["Settings"]["last_session_directory"] = c_d
                 self.write_json(PREFERENCES_FILE, json_data)
 
     def load_json_preferences(self, file):
@@ -272,7 +324,7 @@ class EditorApplication(QWidget, JSON):
         """
 
         data = self.get_json(file)
-        if (not data.get("JSONLoaded", False)) or (not compare_dict_keys(self.user_preferences_template, data)):
+        if (not data.get("Window", False)) or (not compare_dict_keys(self.user_preferences_template, data)):
             def update(key, value, addition):
                 """
                 Updates JSON data based on 'value'
@@ -298,16 +350,66 @@ class EditorApplication(QWidget, JSON):
             self.resize(int(self.size_x), int(self.size_y))
 
     user_preferences_template = {
-        "JSONLoaded": True,
-        "maximized": False,
-        "fullscreen": False,
-        "warn_non_save": True,
-        "last_session_directory": "",
+        "Window": {
+            "JSONLoaded": True,
+            "maximized": False,
+            "fullscreen": False,
+            "warn_non_save": True,
 
-        "WindowPosition": {
-            "X": 0,
-            "Y": 0
+            "WindowPosition": {
+                "X": 0,
+                "Y": 0
+            }
+        },
+
+        "Settings": {
+            "last_session_directory": "",
+            "last_session_preset": "default",
         }
+    }
+
+    def load_json_presets(self, file):
+        """
+        Loads previously stored or the default window preset
+        """
+        data = self.get_json(file)
+        if (not data.get("default")) or (not compare_dict_keys(self.user_presets_template, data.copy())):
+            def update(key, value, addition):
+                """
+                Updates JSON data based on 'value'
+                """
+                if data.get("default"):
+                    value = data.get(key, value)
+
+                if addition is True:
+                    data.update({key: value})
+                else:
+                    data.pop(key)
+
+            compare_dict_keys(self.user_presets_template, data.copy(), update)
+            data = self.write_json(file, data)
+
+        preferences = self.get_json(PREFERENCES_FILE)
+
+        if not data["default"]:
+            self.write_json(PRESETS_FILE, self.user_presets_template)
+            preferences["Settings"]["last_session_preset"] = "default"
+            preferences = self.write_json(PREFERENCES_FILE, preferences)
+
+        location = data[preferences["Settings"]["last_session_preset"]]
+        for window in location:
+            win = Home.__getattribute__(Home, window["win"])(self)
+            win.show()
+            win.move(*(window["pos"]))
+            win.resize(*(window["size"]))
+
+    user_presets_template = {
+        "default": [
+            {"win": "Imports", "pos": (0, 0), "size": (0, 0)},
+            {"win": "Timeline", "pos": (0, 0), "size": (0, 0)},
+            {"win": "Properties", "pos": (0, 0), "size": (0, 0)},
+            {"win": "Filter", "pos": (0, 0), "size": (0, 0)}
+        ]
     }
 
 
