@@ -23,4 +23,3 @@ class Home:
 
     class PresetManager(QWidget, JSON):
         pass  # TODO: Design a window that holds saved presets and also allows new presets to be made with a name
-        #  DONE: Decide where presets should be stored

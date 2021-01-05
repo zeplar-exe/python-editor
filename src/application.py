@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import logging
 
-from PyQt5.QtWidgets import QApplication, QWidget, QHBoxLayout, QMenuBar, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QFrame, QMenuBar, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QEvent
 # import moviepy
 
@@ -13,6 +13,9 @@ from project_windows import Home
 from json_lib import JSON
 from exlib import remove_directory, compare_dict_keys, request_save
 from preferences_window import PreferencesApplication as pref_app
+
+logger = logging.getLogger()
+logger.setLevel(logging.DEBUG)
 
 CURRENT_DIRECTORY = Path(__file__).parent.absolute()
 PREFERENCES_FILE = "user_preferences.json"
@@ -54,13 +57,13 @@ class EditorApplication(QWidget, JSON):
         Creates base project file for temporary use
         """
         json_data = self.get_json(PREFERENCES_FILE)
-        last_session = json_data["Settings"]["last_session_directory"]
+        last_session = json_data["last_session_directory"]
 
         if os.path.isdir(last_session):
             self.current_project = Project(last_session, CURRENT_DIRECTORY, False, True)
             return
         else:
-            json_data["Settings"]["last_session_directory"] = ""
+            json_data["last_session_directory"] = ""
             self.write_json(PREFERENCES_FILE, json_data)
             self.current_project = Project(
                 os.path.join(CURRENT_DIRECTORY, "PE_TMP_FOLDER"),
@@ -73,26 +76,42 @@ class EditorApplication(QWidget, JSON):
         Initiates window UI specifics
         """
         self.setWindowTitle("editor.py")
-        self.size_x = (self.screen_size.width() / 5) * 4  # 4/5 of the screen size
-        self.size_y = (self.screen_size.height() / 4) * 3  # 3/4 of the screen size
-
+        self.size_x = int((self.screen_size.width() / 5) * 4)  # 4/5 of the screen size
+        self.size_y = int((self.screen_size.height() / 4) * 3)  # 3/4 of the screen size
         data = self.get_json(PREFERENCES_FILE)
+
+        if data["WindowSize"] == 0:
+            data["WindowSize"] = {}
+            data["WindowSize"]["X"] = self.size_x
+            data["WindowSize"]["Y"] = self.size_y
+            data = self.write_json(PREFERENCES_FILE, data)
+
         self.setGeometry(
-            data["Window"]["WindowPosition"]["X"],
-            data["Window"]["WindowPosition"]["Y"],
-            int(self.size_x),
-            int(self.size_y)
+            data["WindowPosition"]["X"],
+            data["WindowPosition"]["Y"],
+            data["WindowSize"]["X"],
+            data["WindowSize"]["Y"]
         )
+
+        layout = QVBoxLayout()
+        layout.setAlignment(Qt.AlignCenter)
+
+        project_frame = QFrame()
+        project_frame.setFrameShape(QFrame.StyledPanel)
+        layout.addWidget(project_frame)
+
+        self.setLayout(layout)
 
     def init_menubar(self):
         """
         Initiates window menubar
         """
-        layout = QHBoxLayout()
-        self.setLayout(layout)
-
-        menu_bar = QMenuBar()
-        layout.addWidget(menu_bar)
+        menu_bar = QMenuBar(self)
+        menu_bar.setFixedSize(
+            int(self.screen_size.width()),
+            20
+        )
+        menu_bar.setStyleSheet("QLineEdit { background-color: grey }")
 
         action_file = menu_bar.addMenu("File")
 
@@ -203,6 +222,7 @@ class EditorApplication(QWidget, JSON):
 
         action_file = menu_bar.addMenu("Widgets")
         imports = action_file.addAction("Imports")
+        imports.setCheckable(True)
 
         def imports_():
             pass
@@ -210,6 +230,7 @@ class EditorApplication(QWidget, JSON):
         imports.triggered.connect(imports_)
 
         timeline = action_file.addAction("Timeline")
+        timeline.setCheckable(True)
 
         def timeline_():
             pass
@@ -217,6 +238,7 @@ class EditorApplication(QWidget, JSON):
         timeline.triggered.connect(timeline_)
 
         filter_ = action_file.addAction("Filter")
+        filter_.setCheckable(True)
 
         def filter__():
             pass
@@ -224,6 +246,7 @@ class EditorApplication(QWidget, JSON):
         filter_.triggered.connect(filter__)
 
         properties = action_file.addAction("Properties")
+        properties.setCheckable(True)
 
         def properties_():
             pass
@@ -231,6 +254,7 @@ class EditorApplication(QWidget, JSON):
         properties.triggered.connect(properties_)
 
         history = action_file.addAction("History")
+        history.setCheckable(True)
 
         def history_():
             pass
@@ -238,6 +262,7 @@ class EditorApplication(QWidget, JSON):
         history.triggered.connect(history_)
 
         editor = action_file.addAction("Editor Window")
+        editor.setCheckable(True)
 
         def editor_():
             pass
@@ -253,7 +278,6 @@ class EditorApplication(QWidget, JSON):
         presets.triggered.connect(presets_)
 
         action_file.addSeparator()
-        layout.addWidget(menu_bar)
 
     def changeEvent(self, event):
         """
@@ -262,11 +286,11 @@ class EditorApplication(QWidget, JSON):
         if event.type() == QEvent.WindowStateChange:
             if self.windowState() & Qt.WindowMaximized:
                 existing_data = self.get_json(PREFERENCES_FILE)
-                existing_data["Window"]["maximized"] = True
+                existing_data["maximized"] = True
                 self.write_json(PREFERENCES_FILE, existing_data)
             else:
                 existing_data = self.get_json(PREFERENCES_FILE)
-                existing_data["Window"]["maximized"] = False
+                existing_data["maximized"] = False
                 self.write_json(PREFERENCES_FILE, existing_data)
 
     def moveEvent(self, event):
@@ -276,8 +300,19 @@ class EditorApplication(QWidget, JSON):
         if event.type() == QEvent.Move:
             data = self.get_json(PREFERENCES_FILE)
             pos = event.pos()
-            data["Window"]["WindowPosition"]["X"] = pos.x()
-            data["Window"]["WindowPosition"]["Y"] = pos.y()
+            data["WindowPosition"]["X"] = pos.x()
+            data["WindowPosition"]["Y"] = pos.y()
+            self.write_json(PREFERENCES_FILE, data)
+
+    def resizeEvent(self, event):
+        """
+        Handles move event queue
+        """
+        if event.type() == QEvent.Resize:
+            data = self.get_json(PREFERENCES_FILE)
+            size = event.size()
+            data["WindowSize"]["X"] = size.width()
+            data["WindowSize"]["Y"] = size.height()
             self.write_json(PREFERENCES_FILE, data)
 
     def closeEvent(self, _):
@@ -313,8 +348,8 @@ class EditorApplication(QWidget, JSON):
                     remove_directory(c_d)
 
             json_data = self.get_json(PREFERENCES_FILE)
-            if Path(json_data["Settings"]["last_session_directory"]).parent != CURRENT_DIRECTORY:
-                json_data["Settings"]["last_session_directory"] = c_d
+            if Path(json_data["last_session_directory"]).parent != CURRENT_DIRECTORY:
+                json_data["last_session_directory"] = c_d
                 self.write_json(PREFERENCES_FILE, json_data)
 
     def load_json_preferences(self, file):
@@ -324,7 +359,7 @@ class EditorApplication(QWidget, JSON):
         """
 
         data = self.get_json(file)
-        if (not data.get("Window", False)) or (not compare_dict_keys(self.user_preferences_template, data)):
+        if (not data.get("JSONLoaded", False)) or (not compare_dict_keys(self.user_preferences_template, data)):
             def update(key, value, addition):
                 """
                 Updates JSON data based on 'value'
@@ -347,25 +382,23 @@ class EditorApplication(QWidget, JSON):
             self.showFullScreen()
         elif self.isFullScreen():
             self.showNormal()
-            self.resize(int(self.size_x), int(self.size_y))
+            self.resize(data["WindowSize"]["X"], data["WindowSize"]["Y"])
 
     user_preferences_template = {
-        "Window": {
-            "JSONLoaded": True,
-            "maximized": False,
-            "fullscreen": False,
-            "warn_non_save": True,
+        "JSONLoaded": True,
+        "maximized": False,
+        "fullscreen": False,
+        "warn_non_save": True,
 
-            "WindowPosition": {
-                "X": 0,
-                "Y": 0
-            }
+        "WindowPosition": {
+            "X": 0,
+            "Y": 0
         },
 
-        "Settings": {
-            "last_session_directory": "",
-            "last_session_preset": "default",
-        }
+        "WindowSize": 0,
+
+        "last_session_directory": "",
+        "last_session_preset": "default",
     }
 
     def load_json_presets(self, file):
@@ -393,10 +426,10 @@ class EditorApplication(QWidget, JSON):
 
         if not data["default"]:
             self.write_json(PRESETS_FILE, self.user_presets_template)
-            preferences["Settings"]["last_session_preset"] = "default"
+            preferences["last_session_preset"] = "default"
             preferences = self.write_json(PREFERENCES_FILE, preferences)
 
-        location = data[preferences["Settings"]["last_session_preset"]]
+        location = data[preferences["last_session_preset"]]
         for window in location:
             win = Home.__getattribute__(Home, window["win"])(self)
             win.show()

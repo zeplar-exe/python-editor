@@ -1,4 +1,5 @@
 from PyQt5.QtWidgets import QWidget, QFrame, QVBoxLayout, QCheckBox, QPushButton, QMessageBox
+from PyQt5.QtCore import Qt
 from json_lib import JSON
 
 PREFERENCES_FILE = "user_preferences.json"
@@ -30,9 +31,11 @@ class PreferencesApplication(QWidget, JSON):
         self.setWindowTitle("Preferences")
         self.size_x = (main.screen_size.width() / 10) * 3.3  # 400
         self.size_y = (main.screen_size.height() / 10) * 7  # 500
-        layout = QVBoxLayout()  # QGridLayout()
+        layout = QVBoxLayout()
         layout.setSpacing(2)
+
         frame_layout = QVBoxLayout()
+        frame_layout.addStretch()
         frame_layout.setSpacing(2)
 
         self.setFixedSize(
@@ -40,20 +43,24 @@ class PreferencesApplication(QWidget, JSON):
             int(self.size_y)
         )
 
-        frame = QFrame(self)
-        frame.setFixedSize(self.size_x, (self.size_y / 10) * 7.5)
-        frame.setFrameShape(QFrame.StyledPanel)
-        frame.setLineWidth(0)
+        frame = QFrame()
+        frame.setGeometry(
+            0,
+            0,
+            self.size().width(),
+            (self.size().width() / 10) * 7.5
+        )
+        frame.setFrameShape(QFrame.NoFrame)
         layout.addWidget(frame)
 
         pref_data = self.get_json(PREFERENCES_FILE)
 
-        checkbox_f = QCheckBox("Open editor in fullscreen mode", parent=frame)
+        checkbox_f = QCheckBox("Open editor in fullscreen mode")
         if pref_data.get("fullscreen") is True:
             checkbox_f.setChecked(True)
         frame_layout.addWidget(checkbox_f)
 
-        checkbox_w = QCheckBox("Warn when exiting without saving", parent=frame)
+        checkbox_w = QCheckBox("Warn when exiting without saving")
         if pref_data.get("warn_non_save") is True:
             checkbox_w.setChecked(True)
         frame_layout.addWidget(checkbox_w)
@@ -105,5 +112,5 @@ class PreferencesApplication(QWidget, JSON):
         self.setLayout(layout)
         frame.setLayout(frame_layout)
 
-    def closeEvent(self):
+    def closeEvent(self, _):
         self.main.current_preferences = None
