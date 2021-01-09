@@ -12,7 +12,7 @@ class JSON:
         Writes 'data' to the given json file
         """
         with open(file, "w") as json_file:
-            json.dump(data, json_file)
+            json.dump(data, json_file, indent=4, sort_keys=True)
             return data
 
     @staticmethod

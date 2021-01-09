@@ -1,11 +1,13 @@
-from PyQt5.QtWidgets import QWidget, QFrame, QVBoxLayout, QCheckBox, QPushButton, QMessageBox
+from PyQt5.QtWidgets import QMainWindow, QFrame, QVBoxLayout, QCheckBox, QPushButton, QMessageBox
 from PyQt5.QtCore import Qt
 from json_lib import JSON
 
 PREFERENCES_FILE = "user_preferences.json"
 
 
-class PreferencesApplication(QWidget, JSON):
+class PreferencesApplication(QMainWindow, JSON):
+    # FIXME: Exit without Saving button is missing, both exit buttons are in the wrong place
+    # TODO: Fix layout with QMainWindow changes
     """
     Main class for pyqt application
     """
@@ -29,11 +31,8 @@ class PreferencesApplication(QWidget, JSON):
         """
         main = self.main
         self.setWindowTitle("Preferences")
-        self.size_x = (main.screen_size.width() / 10) * 3.3  # 400
-        self.size_y = (main.screen_size.height() / 10) * 7  # 500
-        layout = QVBoxLayout()
-        layout.setSpacing(2)
-
+        self.size_x = (main.screen_size.width() / 10) * 3.3
+        self.size_y = (main.screen_size.height() / 10) * 7
         frame_layout = QVBoxLayout()
         frame_layout.addStretch()
         frame_layout.setSpacing(2)
@@ -51,9 +50,14 @@ class PreferencesApplication(QWidget, JSON):
             (self.size().width() / 10) * 7.5
         )
         frame.setFrameShape(QFrame.NoFrame)
-        layout.addWidget(frame)
+        self.setCentralWidget(frame)
 
         pref_data = self.get_json(PREFERENCES_FILE)
+
+        checkbox_d = QCheckBox("Enable DEBUG mode")
+        if pref_data.get("debug_mode"):
+            checkbox_d.setChecked(True)
+        frame_layout.addWidget(checkbox_d)
 
         checkbox_f = QCheckBox("Open editor in fullscreen mode")
         if pref_data.get("fullscreen") is True:
@@ -66,7 +70,6 @@ class PreferencesApplication(QWidget, JSON):
         frame_layout.addWidget(checkbox_w)
 
         close_button = QPushButton("Exit without Saving", parent=self)
-        layout.addWidget(close_button)
 
         def close_():
             if checkbox_w.isChecked():
@@ -92,12 +95,12 @@ class PreferencesApplication(QWidget, JSON):
         close_button.clicked.connect(close_)
 
         close_save_button = QPushButton("Save and Exit", parent=self)
-        layout.addWidget(close_save_button)
 
         def save_close():
-            close_save_button.setCheckable(False)
-
-            data = {"fullscreen": checkbox_f.isChecked(), "warn_non_save": checkbox_w.isChecked()}
+            data = {
+                "debug_mode": checkbox_d.isChecked(),
+                "fullscreen": checkbox_f.isChecked(),
+                "warn_non_save": checkbox_w.isChecked()}
             new = self.get_json(PREFERENCES_FILE)
             for key in data:
                 new[key] = data[key]
@@ -109,7 +112,6 @@ class PreferencesApplication(QWidget, JSON):
 
         close_save_button.clicked.connect(save_close)
 
-        self.setLayout(layout)
         frame.setLayout(frame_layout)
 
     def closeEvent(self, _):

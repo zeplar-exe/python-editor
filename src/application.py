@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 import logging
 
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QFrame, QMenuBar, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QMenuBar, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QEvent
 # import moviepy
 
@@ -30,10 +30,11 @@ REQUIRED_PROJECT_FILES = {
 }
 
 
-class EditorApplication(QWidget, JSON):
+class EditorApplication(QMainWindow, JSON):
     """
     Main class for pyqt application
     """
+    menu_bar_size: int
 
     def __init__(self):
         super().__init__()
@@ -44,12 +45,16 @@ class EditorApplication(QWidget, JSON):
         self.size_x = 0
         self.size_y = 0
 
+        self.dock_widgets = {}
+        self.menu_bar = {}
+        self.menu_bar_size = 20
+
         self.screen_size = app.primaryScreen().size()
 
         self.load_json_preferences(PREFERENCES_FILE)
+        self.init_menubar()
         self.load_json_presets(PRESETS_FILE)
         self.init_ui()
-        self.init_menubar()
         self.init_project()
 
     def init_project(self):
@@ -93,25 +98,18 @@ class EditorApplication(QWidget, JSON):
             data["WindowSize"]["Y"]
         )
 
-        layout = QVBoxLayout()
-        layout.setAlignment(Qt.AlignCenter)
-
-        project_frame = QFrame()
-        project_frame.setFrameShape(QFrame.StyledPanel)
-        layout.addWidget(project_frame)
-
-        self.setLayout(layout)
-
     def init_menubar(self):
         """
         Initiates window menubar
         """
-        menu_bar = QMenuBar(self)
+        menu_bar = self.menuBar()
+        self.menu_bar["Main"] = menu_bar
+        self.menu_bar["WidgetActions"] = []
         menu_bar.setFixedSize(
             int(self.screen_size.width()),
-            20
+            self.menu_bar_size
         )
-        menu_bar.setStyleSheet("QLineEdit { background-color: grey }")
+        menu_bar.setStyleSheet("background-color: grey")
 
         action_file = menu_bar.addMenu("File")
 
@@ -221,7 +219,25 @@ class EditorApplication(QWidget, JSON):
         action_file.addAction("Preferences").triggered.connect(preferences_)
 
         action_file = menu_bar.addMenu("Widgets")
+
+        preview = action_file.addAction("Preview")
+        self.menu_bar["WidgetActions"].append(preview)
+        preview.setCheckable(True)
+
+        def preview_():
+            if self.dock_widgets["Preview"]:
+                self.removeDockWidget(self.dock_widgets["Preview"])
+                self.dock_widgets["Preview"] = None
+            else:
+                win = Home.__getattribute__(Home, "Preview")(self)
+                win.setWindowTitle("Preview")
+                self.addDockWidget(win.DefaultPosition, win)
+                win.show()
+
+        preview.triggered.connect(preview_)
+
         imports = action_file.addAction("Imports")
+        self.menu_bar["WidgetActions"].append(imports)
         imports.setCheckable(True)
 
         def imports_():
@@ -230,6 +246,7 @@ class EditorApplication(QWidget, JSON):
         imports.triggered.connect(imports_)
 
         timeline = action_file.addAction("Timeline")
+        self.menu_bar["WidgetActions"].append(timeline)
         timeline.setCheckable(True)
 
         def timeline_():
@@ -238,6 +255,7 @@ class EditorApplication(QWidget, JSON):
         timeline.triggered.connect(timeline_)
 
         filter_ = action_file.addAction("Filter")
+        self.menu_bar["WidgetActions"].append(filter_)
         filter_.setCheckable(True)
 
         def filter__():
@@ -246,6 +264,7 @@ class EditorApplication(QWidget, JSON):
         filter_.triggered.connect(filter__)
 
         properties = action_file.addAction("Properties")
+        self.menu_bar["WidgetActions"].append(properties)
         properties.setCheckable(True)
 
         def properties_():
@@ -254,6 +273,7 @@ class EditorApplication(QWidget, JSON):
         properties.triggered.connect(properties_)
 
         history = action_file.addAction("History")
+        self.menu_bar["WidgetActions"].append(history)
         history.setCheckable(True)
 
         def history_():
@@ -262,6 +282,7 @@ class EditorApplication(QWidget, JSON):
         history.triggered.connect(history_)
 
         editor = action_file.addAction("Editor Window")
+        self.menu_bar["WidgetActions"].append(editor)
         editor.setCheckable(True)
 
         def editor_():
@@ -374,6 +395,8 @@ class EditorApplication(QWidget, JSON):
 
             compare_dict_keys(self.user_preferences_template, data.copy(), update)
             data = self.write_json(file, data)
+        elif self.get_json(PREFERENCES_FILE)["debug_mode"]:
+            data = self.write_json(PREFERENCES_FILE, self.user_preferences_template)
 
         if data.get("maximized") is True:
             self.showMaximized()
@@ -389,6 +412,7 @@ class EditorApplication(QWidget, JSON):
         "maximized": False,
         "fullscreen": False,
         "warn_non_save": True,
+        "debug_mode": False,
 
         "WindowPosition": {
             "X": 0,
@@ -421,6 +445,8 @@ class EditorApplication(QWidget, JSON):
 
             compare_dict_keys(self.user_presets_template, data.copy(), update)
             data = self.write_json(file, data)
+        elif self.get_json(PREFERENCES_FILE)["debug_mode"]:
+            data = self.write_json(PRESETS_FILE, self.user_presets_template)
 
         preferences = self.get_json(PREFERENCES_FILE)
 
@@ -431,17 +457,28 @@ class EditorApplication(QWidget, JSON):
 
         location = data[preferences["last_session_preset"]]
         for window in location:
+            for a in self.menu_bar["WidgetActions"]:
+                if a.text() == window["win"]:
+                    a.setChecked(True)
+
             win = Home.__getattribute__(Home, window["win"])(self)
+            self.dock_widgets[window["win"]] = win
+
+            win.setWindowTitle(window["win"])
+            if window["pos"] is None:
+                window["pos"] = win["DefaultPosition"]
+            self.addDockWidget(Qt.__getattribute__(Qt, window["pos"]), win)
+            win.resize(*window["size"])
             win.show()
-            win.move(*(window["pos"]))
-            win.resize(*(window["size"]))
+            # TODO: Fix dock widgets being extremely small
 
     user_presets_template = {
         "default": [
-            {"win": "Imports", "pos": (0, 0), "size": (0, 0)},
-            {"win": "Timeline", "pos": (0, 0), "size": (0, 0)},
-            {"win": "Properties", "pos": (0, 0), "size": (0, 0)},
-            {"win": "Filter", "pos": (0, 0), "size": (0, 0)}
+            {"win": "Preview", "pos": None, "size": (200, 800)},
+            {"win": "Imports", "pos": None, "size": (200, 800)},
+            {"win": "Timeline", "pos": None, "size": (200, 800)},
+            {"win": "Properties", "pos": None, "size": (200, 800)},
+            {"win": "Filter", "pos": None, "size": (200, 8000)},
         ]
     }
 

@@ -67,7 +67,7 @@ def request_save(project):
         modified = True
 
     if modified:
-        if JSON.get_json(None, "user_preferences.json")["warn_non_save"]:
+        if JSON.get_json("user_preferences.json")["warn_non_save"]:
             dialog = QMessageBox()
             dialog.setText("Project modifications have been found")
             dialog.setInformativeText("Are you sure you would like to discard unsaved changes?")
