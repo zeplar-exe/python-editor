@@ -1,3 +1,4 @@
+import logging
 from PyQt5.QtWidgets import QMainWindow, QFrame, QVBoxLayout, QCheckBox, QPushButton, QMessageBox
 from PyQt5.QtCore import Qt
 from json_lib import JSON
@@ -6,8 +7,6 @@ PREFERENCES_FILE = "user_preferences.json"
 
 
 class PreferencesApplication(QMainWindow, JSON):
-    # FIXME: Exit without Saving button is missing, both exit buttons are in the wrong place
-    # TODO: Fix layout with QMainWindow changes
     """
     Main class for pyqt application
     """
@@ -34,7 +33,7 @@ class PreferencesApplication(QMainWindow, JSON):
         self.size_x = (main.screen_size.width() / 10) * 3.3
         self.size_y = (main.screen_size.height() / 10) * 7
         frame_layout = QVBoxLayout()
-        frame_layout.addStretch()
+        frame_layout.setAlignment(Qt.AlignLeft)
         frame_layout.setSpacing(2)
 
         self.setFixedSize(
@@ -43,14 +42,14 @@ class PreferencesApplication(QMainWindow, JSON):
         )
 
         frame = QFrame()
+        self.setCentralWidget(frame)
         frame.setGeometry(
             0,
             0,
             self.size().width(),
-            (self.size().width() / 10) * 7.5
+            (self.size().height() / 10) * 7.5
         )
-        frame.setFrameShape(QFrame.NoFrame)
-        self.setCentralWidget(frame)
+        frame.setFrameShape(QFrame.StyledPanel)
 
         pref_data = self.get_json(PREFERENCES_FILE)
 
@@ -70,6 +69,10 @@ class PreferencesApplication(QMainWindow, JSON):
         frame_layout.addWidget(checkbox_w)
 
         close_button = QPushButton("Exit without Saving", parent=self)
+        close_button.move(
+            self.size_x - (close_button.size().width() * 2) - 10,
+            self.size_y - close_button.size().height() - 5
+        )
 
         def close_():
             if checkbox_w.isChecked():
@@ -95,6 +98,12 @@ class PreferencesApplication(QMainWindow, JSON):
         close_button.clicked.connect(close_)
 
         close_save_button = QPushButton("Save and Exit", parent=self)
+        logging.debug(" " + str(self.size_x))
+        logging.debug(" " + str(self.size_y))
+        close_save_button.move(
+            self.size_x - close_save_button.size().width() - 5,
+            self.size_y - close_save_button.size().height() - 5
+        )
 
         def save_close():
             data = {
@@ -112,6 +121,7 @@ class PreferencesApplication(QMainWindow, JSON):
 
         close_save_button.clicked.connect(save_close)
 
+        frame_layout.addStretch()
         frame.setLayout(frame_layout)
 
     def closeEvent(self, _):

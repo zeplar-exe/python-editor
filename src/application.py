@@ -15,7 +15,8 @@ from exlib import remove_directory, compare_dict_keys, request_save
 from preferences_window import PreferencesApplication as pref_app
 
 logger = logging.getLogger()
-logger.setLevel(logging.DEBUG)
+logging.basicConfig(filename='log_file.log', level=logging.DEBUG)
+# logger.setLevel(logging.DEBUG)
 
 CURRENT_DIRECTORY = Path(__file__).parent.absolute()
 PREFERENCES_FILE = "user_preferences.json"
@@ -396,7 +397,9 @@ class EditorApplication(QMainWindow, JSON):
             compare_dict_keys(self.user_preferences_template, data.copy(), update)
             data = self.write_json(file, data)
         elif self.get_json(PREFERENCES_FILE)["debug_mode"]:
-            data = self.write_json(PREFERENCES_FILE, self.user_preferences_template)
+            copy = self.user_preferences_template.copy()
+            copy["debug_mode"] = True
+            data = self.write_json(PREFERENCES_FILE, copy)
 
         if data.get("maximized") is True:
             self.showMaximized()
@@ -484,6 +487,11 @@ class EditorApplication(QMainWindow, JSON):
 
 
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    EditorApplication().show()
-    sys.exit(app.exec_())
+    # noinspection PyBroadException
+    try:
+        app = QApplication(sys.argv)
+        EditorApplication().show()
+        sys.exit(app.exec_())
+    except:
+        if os.path.isdir("PE_TMP_FOLDER"):
+            os.removedirs("PE_TMP_FOLDER")
