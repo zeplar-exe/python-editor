@@ -98,8 +98,6 @@ class PreferencesApplication(QMainWindow, JSON):
         close_button.clicked.connect(close_)
 
         close_save_button = QPushButton("Save and Exit", parent=self)
-        logging.debug(" " + str(self.size_x))
-        logging.debug(" " + str(self.size_y))
         close_save_button.move(
             self.size_x - close_save_button.size().width() - 5,
             self.size_y - close_save_button.size().height() - 5

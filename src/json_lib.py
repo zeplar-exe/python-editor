@@ -22,6 +22,10 @@ class JSON:
         """
 
         with open(file, "r") as json_file:
-            contents = json_file.read()
-            data = json.loads(contents)
-            return data
+            try:
+                contents = json_file.read()
+                data = json.loads(contents)
+            except json.decoder.JSONDecodeError:
+                return JSON.write_json(file, {})
+            else:
+                return data

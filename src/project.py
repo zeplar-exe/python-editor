@@ -49,6 +49,8 @@ class Project(JSON):
             self.write_json(os.path.join(self.project_directory, "images.json"), self.project_data["clips.json"])
             self.write_json(os.path.join(self.project_directory, "clips.json"), self.project_data["images.json"])
 
+            j_data = self.get_json("user_presets.json")
+
         return self
 
     def save_as(self):

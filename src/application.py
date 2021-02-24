@@ -1,9 +1,9 @@
 import sys
 import os
 from pathlib import Path
-import logging
+import logging as log
 
-from PyQt5.QtWidgets import QApplication, QMainWindow, QMenuBar, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 from PyQt5.QtCore import Qt, QEvent
 # import moviepy
 
@@ -14,9 +14,17 @@ from json_lib import JSON
 from exlib import remove_directory, compare_dict_keys, request_save
 from preferences_window import PreferencesApplication as pref_app
 
-logger = logging.getLogger()
-logging.basicConfig(filename='log_file.log', level=logging.DEBUG)
-# logger.setLevel(logging.DEBUG)
+logger = log.getLogger()
+log.basicConfig(
+    filename='log_file.log',
+    level=log.DEBUG,
+    format='''------------------------------------
+Timestamp: %(asctime)s
+Message: %(message)s
+------------------------------------
+'''
+)
+# logger.disabled = True
 
 CURRENT_DIRECTORY = Path(__file__).parent.absolute()
 PREFERENCES_FILE = "user_preferences.json"
@@ -35,7 +43,6 @@ class EditorApplication(QMainWindow, JSON):
     """
     Main class for pyqt application
     """
-    menu_bar_size: int
 
     def __init__(self):
         super().__init__()
@@ -105,7 +112,7 @@ class EditorApplication(QMainWindow, JSON):
         """
         menu_bar = self.menuBar()
         self.menu_bar["Main"] = menu_bar
-        self.menu_bar["WidgetActions"] = []
+        self.menu_bar["WidgetActions"] = []  # OPTIMIZE: Create a better system of getting certain actions
         menu_bar.setFixedSize(
             int(self.screen_size.width()),
             self.menu_bar_size
@@ -221,75 +228,74 @@ class EditorApplication(QMainWindow, JSON):
 
         action_file = menu_bar.addMenu("Widgets")
 
+        def HandleWidget(name):
+            if name in self.dock_widgets:
+                self.removeDockWidget(self.dock_widgets[name])
+                self.dock_widgets[name] = None
+            else:
+                win = getattr(Home, name, None)(self)
+                if win:
+                    j_data = self.get_json(PRESETS_FILE)
+                    if name not in j_data["Presets"][j_data["Selected"]]:
+                        j_data["Presets"][j_data["Selected"]].append(
+                            {
+                                "win": name,
+                                "pos": win.DefaultPosition,
+                                "size": win.MinimumSize
+                            }
+                        )
+                    self.write_json(PRESETS_FILE, j_data)
+                    win.setWindowTitle(name)
+                    if win.DefaultPosition == "Central":
+                        self.setCentralWidget(win)
+                    else:
+                        self.addDockWidget(getattr(Qt, win.DefaultPosition), win)
+                    win.show()
+                    self.dock_widgets[name] = win
+                else:
+                    log.error(f"Widget {name} does not exist.")
+
         preview = action_file.addAction("Preview")
         self.menu_bar["WidgetActions"].append(preview)
         preview.setCheckable(True)
 
-        def preview_():
-            if self.dock_widgets["Preview"]:
-                self.removeDockWidget(self.dock_widgets["Preview"])
-                self.dock_widgets["Preview"] = None
-            else:
-                win = Home.__getattribute__(Home, "Preview")(self)
-                win.setWindowTitle("Preview")
-                self.addDockWidget(win.DefaultPosition, win)
-                win.show()
-
-        preview.triggered.connect(preview_)
+        preview.triggered.connect(lambda: HandleWidget("Preview"))
 
         imports = action_file.addAction("Imports")
         self.menu_bar["WidgetActions"].append(imports)
         imports.setCheckable(True)
 
-        def imports_():
-            pass
-
-        imports.triggered.connect(imports_)
+        imports.triggered.connect(lambda: HandleWidget("Imports"))
 
         timeline = action_file.addAction("Timeline")
         self.menu_bar["WidgetActions"].append(timeline)
         timeline.setCheckable(True)
 
-        def timeline_():
-            pass
-
-        timeline.triggered.connect(timeline_)
+        timeline.triggered.connect(lambda: HandleWidget("Timeline"))
 
         filter_ = action_file.addAction("Filter")
         self.menu_bar["WidgetActions"].append(filter_)
         filter_.setCheckable(True)
 
-        def filter__():
-            pass
-
-        filter_.triggered.connect(filter__)
+        filter_.triggered.connect(lambda: HandleWidget("Filter"))
 
         properties = action_file.addAction("Properties")
         self.menu_bar["WidgetActions"].append(properties)
         properties.setCheckable(True)
 
-        def properties_():
-            pass
-
-        properties.triggered.connect(properties_)
+        properties.triggered.connect(lambda: HandleWidget("Properties"))
 
         history = action_file.addAction("History")
         self.menu_bar["WidgetActions"].append(history)
         history.setCheckable(True)
 
-        def history_():
-            pass
-
-        history.triggered.connect(history_)
+        history.triggered.connect(lambda: HandleWidget("History"))
 
         editor = action_file.addAction("Editor Window")
         self.menu_bar["WidgetActions"].append(editor)
         editor.setCheckable(True)
 
-        def editor_():
-            pass
-
-        editor.triggered.connect(editor_)
+        editor.triggered.connect(lambda: HandleWidget("Editor Window"))
 
         action_file.addSeparator()
         presets = action_file.addAction("Preset Manager")
@@ -306,7 +312,7 @@ class EditorApplication(QMainWindow, JSON):
         Handles event queue
         """
         if event.type() == QEvent.WindowStateChange:
-            if self.windowState() & Qt.WindowMaximized:
+            if self.windowState() == Qt.WindowMaximized:
                 existing_data = self.get_json(PREFERENCES_FILE)
                 existing_data["maximized"] = True
                 self.write_json(PREFERENCES_FILE, existing_data)
@@ -450,39 +456,69 @@ class EditorApplication(QMainWindow, JSON):
             data = self.write_json(file, data)
         elif self.get_json(PREFERENCES_FILE)["debug_mode"]:
             data = self.write_json(PRESETS_FILE, self.user_presets_template)
-
         preferences = self.get_json(PREFERENCES_FILE)
 
-        if not data["default"]:
+        if data["Selected"] not in data["Presets"]:
+            data["Selected"] = "Default"
             self.write_json(PRESETS_FILE, self.user_presets_template)
-            preferences["last_session_preset"] = "default"
+            preferences["last_session_preset"] = "Default"
             preferences = self.write_json(PREFERENCES_FILE, preferences)
 
-        location = data[preferences["last_session_preset"]]
+        if preferences["last_session_preset"] not in data:
+            preferences["last_session_preset"] = "Default"
+            data["Selected"] = "Default"
+
+        location = data["Presets"][preferences["last_session_preset"]]
         for window in location:
             for a in self.menu_bar["WidgetActions"]:
                 if a.text() == window["win"]:
                     a.setChecked(True)
 
-            win = Home.__getattribute__(Home, window["win"])(self)
+            win = getattr(Home, window["win"])(self)
             self.dock_widgets[window["win"]] = win
-
             win.setWindowTitle(window["win"])
-            if window["pos"] is None:
-                window["pos"] = win["DefaultPosition"]
-            self.addDockWidget(Qt.__getattribute__(Qt, window["pos"]), win)
+            win.setMinimumSize(*win.MinimumSize)
             win.resize(*window["size"])
+
+            if window["pos"] == "Central":
+                self.setCentralWidget(win)
+            else:
+                self.addDockWidget(Qt.__getattribute__(Qt, window["pos"]), win)
             win.show()
-            # TODO: Fix dock widgets being extremely small
+            # FIXME: Fix dock widgets being extremely small
+            # NOTE: Expected window display: https://gyazo.com/c319614c348a55129762149099398769
 
     user_presets_template = {
-        "default": [
-            {"win": "Preview", "pos": None, "size": (200, 800)},
-            {"win": "Imports", "pos": None, "size": (200, 800)},
-            {"win": "Timeline", "pos": None, "size": (200, 800)},
-            {"win": "Properties", "pos": None, "size": (200, 800)},
-            {"win": "Filter", "pos": None, "size": (200, 8000)},
-        ]
+        "Selected": "Default",
+        "Presets": {
+            "Default": [
+                {
+                    "win": "Preview",
+                    "pos": Home.Preview.DefaultPosition,
+                    "size": Home.Preview.MinimumSize
+                },
+                {
+                    "win": "Imports",
+                    "pos": Home.Imports.DefaultPosition,
+                    "size": Home.Imports.MinimumSize
+                },
+                {
+                    "win": "Timeline",
+                    "pos": Home.Timeline.DefaultPosition,
+                    "size": Home.Timeline.MinimumSize
+                },
+                {
+                    "win": "Properties",
+                    "pos": Home.Properties.DefaultPosition,
+                    "size": Home.Properties.MinimumSize
+                },
+                {
+                    "win": "Filter",
+                    "pos": Home.Filter.DefaultPosition,
+                    "size": Home.Filter.MinimumSize
+                },
+            ]
+        }
     }
 
 
@@ -494,4 +530,8 @@ if __name__ == "__main__":
         sys.exit(app.exec_())
     except:
         if os.path.isdir("PE_TMP_FOLDER"):
-            os.removedirs("PE_TMP_FOLDER")
+            remove_directory("PE_TMP_FOLDER")
+        raise
+    finally:
+        with open("log_file.log", "w") as f:
+            f.write("")
