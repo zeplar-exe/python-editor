@@ -231,7 +231,13 @@ class EditorApplication(QMainWindow, JSON):
         def HandleWidget(name):
             if name in self.dock_widgets:
                 self.removeDockWidget(self.dock_widgets[name])
-                self.dock_widgets[name] = None
+
+                j_data = self.get_json(PRESETS_FILE)
+                for d in j_data["Presets"][j_data["Selected"]]:
+                    if d["win"] == name:
+                        j_data["Presets"][j_data["Selected"]].remove(d)
+                        self.write_json(PRESETS_FILE, j_data)
+                        break
             else:
                 win = getattr(Home, name, None)(self)
                 if win:

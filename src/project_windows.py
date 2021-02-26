@@ -2,6 +2,21 @@ from PyQt5.QtWidgets import QDockWidget  # , QFrame, QVBoxLayout, QCheckBox, QPu
 from json_lib import JSON
 
 
+def Close(obj):
+    obj.parent.removeDockWidget(obj.parent.dock_widgets[object.__class__.__name__])
+
+    j_data = obj.get_json("user_presets.json")
+    for d in j_data["Presets"][j_data["Selected"]]:
+        if d["win"] == obj.__class__.__name__:
+            j_data["Presets"][j_data["Selected"]].remove(d)
+            obj.write_json("user_presets.json", j_data)
+            break
+
+    for w in obj.parent.menu_bar["WidgetActions"]:
+        if w.text() == obj.__class__.__name__:
+            w.setChecked(False)
+
+
 class Home:
     class Preview(QDockWidget, JSON):
         def __init__(self, parent):
@@ -9,12 +24,8 @@ class Home:
             self.parent = parent
             self.setParent(parent)
 
-            # self.init_ui()
-
         def closeEvent(self, _):
-            for w in self.parent.menu_bar["WidgetActions"]:
-                if w.text() == self.__class__.__name__:
-                    w.setChecked(False)
+            Close(self)
 
         DefaultPosition = "Central"
         MinimumSize = (400, 400)
@@ -27,9 +38,7 @@ class Home:
             self.setParent(parent)
 
         def closeEvent(self, _):
-            for w in self.parent.menu_bar["WidgetActions"]:
-                if w.text() == self.__class__.__name__:
-                    w.setChecked(False)
+            Close(self)
 
         DefaultPosition = "LeftDockWidgetArea"
         MinimumSize = (100, 600)
@@ -42,9 +51,7 @@ class Home:
             self.setParent(parent)
 
         def closeEvent(self, _):
-            for w in self.parent.menu_bar["WidgetActions"]:
-                if w.text() == self.__class__.__name__:
-                    w.setChecked(False)
+            Close(self)
 
         DefaultPosition = "BottomDockWidgetArea"
         MinimumSize = (400, 150)
@@ -57,9 +64,7 @@ class Home:
             self.setParent(parent)
 
         def closeEvent(self, _):
-            for w in self.parent.menu_bar["WidgetActions"]:
-                if w.text() == self.__class__.__name__:
-                    w.setChecked(False)
+            Close(self)
 
         DefaultPosition = "RightDockWidgetArea"
         MinimumSize = (150, 600)
@@ -72,9 +77,7 @@ class Home:
             self.setParent(parent)
 
         def closeEvent(self, _):
-            for w in self.parent.menu_bar["WidgetActions"]:
-                if w.text() == self.__class__.__name__:
-                    w.setChecked(False)
+            Close(self)
 
         DefaultPosition = "RightDockWidgetArea"
         MinimumSize = (150, 600)
@@ -87,9 +90,7 @@ class Home:
             self.setParent(parent)
 
         def closeEvent(self, _):
-            for w in self.parent.menu_bar["WidgetActions"]:
-                if w.text() == self.__class__.__name__:
-                    w.setChecked(False)
+            Close(self)
 
         DefaultPosition = "LeftDockWidgetArea"
         MinimumSize = (150, 600)
@@ -102,9 +103,7 @@ class Home:
             self.setParent(parent)
 
         def closeEvent(self, _):
-            for w in self.parent.menu_bar["WidgetActions"]:
-                if w.text() == self.__class__.__name__:
-                    w.setChecked(False)
+            Close(self)
 
         DefaultPosition = "TopDockWidgetArea"
         MinimumSize = (450, 600)
@@ -117,9 +116,7 @@ class Home:
             self.setParent(parent)
 
         def closeEvent(self, _):
-            for w in self.parent.menu_bar["WidgetActions"]:
-                if w.text() == self.__class__.__name__:
-                    w.setChecked(False)
+            Close(self)
 
         DefaultPosition = "TopDockWidgetArea"
         MinimumSize = (450, 600)
